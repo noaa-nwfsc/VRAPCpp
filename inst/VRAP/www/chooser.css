@@ -1,0 +1,56 @@
+.chooser-container { 
+    display: inline-block; 
+}
+
+.chooser-left-container {
+    margin-right : -11px;
+    width : 100%;
+}
+
+.chooser-right-container {
+    margin-right: 0px;
+    width : 100%;
+}
+
+.chooser-upper-container {
+    margin-right : -15px;
+    width : 100em;
+}
+
+.chooser-lower-container {
+    margin-right: -15px;
+    width : 100em;
+}
+
+.chooser-left{
+    width : 100%;
+}
+
+.chooser-right{
+    width : 100%;
+}
+
+select.upper {
+    width : 100em;
+}
+
+select.lower {
+    width : 100em;
+}
+
+td.vertical-td {
+    text-align : center;
+}
+
+.chooser-control-label {
+    width : 16em;
+    text-align : center;
+}
+
+.fa-3x {
+    cursor : pointer;
+}
+
+.fa-3x.text-muted {
+    cursor: default;
+}

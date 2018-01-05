@@ -1,0 +1,278 @@
+% This creates a basic report of the uncertainty in SR parameters
+% It is meant to be called by WriteReport() function
+% It is named xRnw so that R does not automatically generate a pdf
+\documentclass[12pt]{article}
+
+\usepackage[footnotesize, bf]{caption} % for nicer caption options
+\setlength{\captionmargin}{24pt}
+\usepackage{fancyvrb}
+
+%no indent with space between paragraphs; add more space
+\usepackage[parfill]{parskip} 
+\setlength{\parskip}{\baselineskip}
+    
+<<include=FALSE>>=
+opts_chunk$set(concordance=TRUE, echo=FALSE)
+@
+
+<<title, results='asis'>>=
+cat("\\title{VRAP Output for ")
+cat(str_split(inputs$Title,";")[[1]][1], "}\n")
+@
+
+\author{}
+\begin{document}
+\maketitle
+
+<<RUNFIRST>>=
+require(VRAP)
+@
+
+<<prelim>>=
+#This Sweave file is not called directly.  Rather is it called when WriteReport() is 
+#run from the R command line or shiny GUI
+#the inputs list is defined in the  WriteReport() call
+#this xRnw file is called using the environment of the WriteReport() call, thus the Rnw file knows of inputs
+
+#set up the inputs
+mm = ff = FALSE
+if(inputs$SRType %in% c("BEV3","HOC3","RIC3")) ff <- TRUE
+if(inputs$SRType %in% c("BEV4","HOC4","RIC4")){ ff <- TRUE; mm <- TRUE}
+@
+
+The SR function used to simulate is a 
+<<label=SR.text.1, results='asis'>>=
+if(str_sub(inputs$SRType,1,3)=="RIC") cat(" Ricker function")
+if(str_sub(inputs$SRType,1,3)=="BEV") cat(" Beverton-Holt function")
+if(str_sub(inputs$SRType,1,3)=="HOC") cat(" Hockey-stick function")
+if(mm | ff){ 
+  cat(" with covariates:")
+}else{ cat(":") }
+@
+<<label=SR.eqn1, results='asis'>>=
+if(str_sub(inputs$SRType,1,3)=="RIC"){
+  cat("\\begin{equation}R=\\frac{S a}{ \\mbox{exp}(S/b)}")
+  if(mm) cat("e^{c M}")
+  if(ff) cat("e^{d F}")
+  cat("\\end{equation}\n")
+  if(mm) cat("$M$ is the log of the marine survival covariate. ")
+  if(ff) cat("$F$ is the freshwater survival covariate.")
+  cat("\n")
+}
+if(str_sub(inputs$SRType,1,3)=="BEV"){
+   cat("\\begin{equation}R=\\frac{S}{S/b + 1/a}")
+  if(mm) cat("e^{c M}")
+  if(ff) cat("e^{d F}")
+  cat("\\end{equation}\n")
+  if(mm) cat("$M$ is the log of the marine survival covariate. ")
+  if(ff) cat("$F$ is the freshwater survival covariate.")
+  cat("\n")
+}
+if(str_sub(inputs$SRType,1,3)=="HOC"){
+  extra=""
+  if(mm) extra=" e^{c M}"
+  if(ff) extra=paste(extra," e^{d F}")
+cat(paste("\\begin{equation}R = \\left\\{ \\begin{array}{ll}S a", 
+           extra, "& \\mbox{if $S a < b$}; \\\\ b", 
+           extra, "& \\mbox{otherwise}.\\end{array} \\right.\\end{equation}\n"))
+  if(mm) cat("$M$ is the log of the marine survival covariate. ")
+  if(ff) cat("$F$ is the freshwater survival covariate.")
+  cat("\n")
+}
+@
+$R$ is the number of recruits and $S$ is the number of spawners. $a$ and $b$ are the SR function 
+<<label=SR.text.5, results='asis'>>=
+if(mm & ff){ 
+  cat("parameters and $c$ and $d$ incorporate the effect of marine and freshwater conditions, respectively, on marine and freshwater survival. ")
+}
+if(ff & !mm){ 
+  cat("parameters and $d$ incorporates the effect of the freshwater survival covariate. ")
+}
+if(!ff & !mm) cat("parameters. ",sep="")
+@
+For this simulation, $a =$ \Sexpr{inputs$BSRa}
+<<label=SR.text.2, results='asis'>>=
+if(ff) cat(", ") else cat(" and ")
+@
+$b =$  \Sexpr{inputs$BSRb}
+<<label=SR.text.3, results='asis'>>=
+if(!mm & !ff) cat(". ")
+if(ff & !mm) cat(" and ")
+if(mm & ff)cat(", ")
+if(ff) cat("$d =$ ", inputs$BSRd)
+if(ff & !mm) cat(". ")
+if(mm & ff) cat(" and $c =$ ", inputs$BSRc, ". ")
+@
+This SR function, 
+<<label=SR.text.4, results='asis'>>=
+cat(ifelse(str_to_upper(inputs$depen)=="NO", " with no ", " with "))
+@
+depensation, is used to simulate \Sexpr{inputs$NRuns} spawner escapement time series for \Sexpr{inputs$NYears} years with $b$ varying.  The full input file (.rav file) is shown in appendix A and the main age-specific parameters are shown in Figure 1.
+
+<<label=breakpoints.text.1, results='asis'>>=
+# Note the R version of VRAP only allows 0 or 1 harvest breakpoint
+
+if(inputs$NumBreakPoints == 0){
+cat("The target exploitation rate is set at ", inputs$TargetU[1],".",sep="")
+}
+if(inputs$NumBreakPoints == 1){
+cat("This simulation has a harvest rate breakpoint.  This means that the target exploitation rate is scaled (up or down) when the escapement is below a threshold escapement level. ")
+cat("The threshold escapement level is ", inputs$EscpmntBreakPoint[1], ". ",sep="")
+cat("When the escapement is below this level, the target harvest rate is ", inputs$TargetU[1],". ", sep="")
+cat("When the escapement is above ", inputs$EscpmntBreakPoint[1], ", the target exploitation rate is ", inputs$TargetU[2], ".", sep="")
+}
+@
+
+The simulations are used to compute different recovery metrics as a function of different population capacities ($b$).  These metrics are shown in the table in the summary (.sum) output file in appendix B  and the two main metrics are shown in Figure 2.  
+\begin{itemize}
+\item The ``\% runs extnct" column is the percentage of simulations where any escapement in the assessment years is above the quasi-extinction threshold + 1.  For this simulation, the assessment years are years \Sexpr{(inputs$NYears - (inputs$EndAv - 1))} to \Sexpr{inputs$NYears}, and the quasi-extinction threshold is \Sexpr{inputs$DL2}.
+\item The ``\%yrs $<$LEL" column is the percentage of years that the escapement was below the  critical escapement threshold (number of years below the threshold divided by \Sexpr{inputs$NYears} years). The critical escapement threshold for the simulations was \Sexpr{inputs$ECrit}.
+\item The ``\%run end$>$UEL" column is the percentage of simulations where the geometric mean escapement in the assessment years is above the recovery escapement threshold.  For this simulation, the assessment years are years \Sexpr{(inputs$NYears - (inputs$EndAv - 1))} to \Sexpr{inputs$NYears}, and the recovery escapement threshold is \Sexpr{inputs$ERecovery}.
+\end{itemize}
+
+
+
+
+
+%^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+\setkeys{Gin}{}
+\begin{figure}[htp]
+\begin{center}
+<<label=raw-data,echo=FALSE,fig.width=6, fig.height=7>>=
+# plot of the original data
+par(mfrow=c(2,2))
+plot(1:length(inputs$CohortStart),inputs$CohortStart,type="b",main="Age Distribution (Numbers)\nat Start",xlab="Age",ylab="",bty="L",xlim=c(.5,length(inputs$NatMort)+.5))
+text(1:length(inputs$CohortStart), y=inputs$CohortStart, inputs$CohortStart,pos=4,cex=.75)
+plot(1:length(inputs$NatMort),inputs$NatMort,type="b",main="Natural Mortality by Age",xlab="Age",ylab="",bty="L",xlim=c(.5,length(inputs$NatMort)+.5))
+text(1:length(inputs$NatMort), y=inputs$NatMort, round(inputs$NatMort,digits=3), pos=4,cex=.75)
+plot(1:length(inputs$MatRate),inputs$MatRate,type="b",main="Maturation Rate by Age",xlab="Age",ylab="",bty="L",xlim=c(.5,length(inputs$MatRate)+.5))
+text(1:length(inputs$MatRate), y=inputs$MatRate, round(inputs$MatRate,digits=3), pos=4,cex=.75)
+ylims=c(0,ceiling(max(inputs$PTU,inputs$MatU)*10)/10)
+plot(1:length(inputs$PTU),inputs$PTU,type="b",main="Harvest Weight by Age",xlab="Age",ylab="",bty="L",xlim=c(.5,length(inputs$MatRate)+.5),ylim=ylims)
+lines(1:length(inputs$MatU),inputs$MatU,type="b",pch=2)
+legend("topright",c("Pre-terminal","Mature"),bty="n",cex=.75,pch=c(1,2))
+@
+\end{center}
+\caption{Data from the .rav file for running the simulations. See Figure 2 for a discussion of how the harvest weight is used. }
+\label{fig:age.specific.info}
+\end{figure}
+%^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+%^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+\setkeys{Gin}{}
+\begin{figure}[htp]
+\begin{center}
+<<label=RER-summary,echo=FALSE,fig.width=6, fig.height=7>>=
+#define a function to read in the summary file
+read.sum=function(filename,UEL=80,LEL=5){
+#number of columns is determined by first 5 lines which will not be long enough
+#set 1:100 and skip the title since that could be any length
+  a=read.delim(filename,strip.white=TRUE,header=FALSE,sep="",stringsAsFactors=FALSE,skip=5,col.names=paste("V",1:100,sep=""))
+  #the needed table starts 5 lines after SUMMARY
+  a=a[(which(a[,1]=="SUMMARY")+5):dim(a)[1],1:11]
+  a=apply(as.matrix(a),2,as.numeric)
+  col7=a[,"V7"];col8=a[,"V8"]; col1=a[,"V1"];
+
+  #use some smoothing
+  x=col1; y=col8
+  smoothingSpline = smooth.spline(x, y, spar=0.35)
+  x.range = seq(x[1],x[length(x)],1)
+  pred=predict(smoothingSpline, x.range)
+  smooth.x=pred$x; smooth.uel=pred$y
+  y=col7
+  smoothingSpline = smooth.spline(x, y, spar=0.35)
+  pred=predict(smoothingSpline, x.range)
+  smooth.lel=pred$y
+
+  tmp=which(smooth.uel>=UEL)
+  if(length(tmp)==0){ x.at.UEL=NA
+  }else{ x.at.UEL=smooth.x[min(tmp)] } 
+  #smallest col1 (b) where Esc > uel more than UEL frac of sims
+  tmp=which(smooth.lel<=LEL)
+  if(length(tmp)==0){ x.at.LEL=NA
+  }else{ x.at.LEL=smooth.x[min(tmp)] }
+  #smallest col1 (b) where Esc < lel less than LEL frac of sims
+  
+  return(list(
+    x.at.UEL=x.at.UEL, x.at.LEL=x.at.LEL, 
+    sim.uel=col8, sim.lel=col7, sim.x=col1, 
+    smooth.x=smooth.x, smooth.uel=smooth.uel, smooth.lel=smooth.lel))
+}
+
+  #Make plots of rer metrics versus b (capacity)
+  
+  UEL=80; LEL=5 # Thresholds to use
+  suminfo=read.sum(inputs$OutFileSum, UEL=UEL, LEL=LEL)
+  
+  par(mfrow=c(2,1))
+  #points from sim
+  x=suminfo$sim.x; y=suminfo$sim.uel
+  #points from smoothing
+  smooth.x=suminfo$smooth.x; smooth.y=suminfo$smooth.uel
+  plot(smooth.x, smooth.y,
+    main=paste("Percent of simulations where geomean in assessment\nyears is above RET (",inputs$ERecovery,")",sep=""),
+    type="l", lwd=2,
+    ylab="% of simulations > RET", xlab="Population Capacity (b)",
+    ylim=c(0,100),bty="n")
+  points(x,y)
+  abline(v=suminfo$x.at.UEL)
+  if(!is.na(suminfo$x.at.UEL)){
+    text(
+      suminfo$x.at.UEL,ifelse(suminfo$x.at.UEL>0.8*max(smooth.x),70,95),
+      paste(UEL,"% = ",round(suminfo$x.at.UEL,digits=2),sep=""),
+      pos=ifelse(suminfo$x.at.UEL>0.8*max(smooth.x),2,4)) #to make sure the label doesn't go off plot
+    }
+  
+  #points from sim
+  y=suminfo$sim.lel
+  #points from smoothing
+  smooth.y=suminfo$smooth.lel
+  plot(smooth.x, smooth.y,
+    main=paste("Fraction of Years that are below the\nCET (",inputs$ECrit,")",sep=""),
+    type="l", lwd=2,
+    ylab="average % of years below CET", xlab="Population Capacity (b)",
+    ylim=c(0,100), bty="n")
+  points(x,y)
+  abline(v=suminfo$x.at.LEL)
+  if(!is.na(suminfo$x.at.LEL)){
+    text(suminfo$x.at.LEL,ifelse(suminfo$x.at.LEL>0.8*max(smooth.x),70,95),
+      paste(LEL,"% = ",round(suminfo$x.at.LEL,digits=2),sep=""),
+      pos=ifelse(suminfo$x.at.LEL>0.8*max(smooth.x),2,4)) #to make sure the label doesn't go off plot
+      }
+@
+\end{center}
+\caption{Population Capacity (b) versus recovery metrics.  The line is a smoothed fit to the output at the population capacities 
+used in the simulations (the dots). The vertical lines (if present) show the capacities at the critical levels: the capacity where the geometric mean escapment 
+in the assessment years is above RET in at least 80 percent of simulations and the capacity where CET is reached in no more than 5 percent of years.}
+\label{fig:uel-lel}
+\end{figure}
+%^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+\clearpage
+\section*{Appendix A: Input file (.rav)}
+
+% Output the rav file at the end
+\begin{Verbatim}[fontsize=\tiny]
+<<ravappendix, results='asis'>>=
+tmp=readLines(inputs$InFile)
+tmp=str_wrap(tmp, width=120,exdent=5)
+cat(tmp,sep="\n")
+@
+\end{Verbatim}
+
+\clearpage
+
+\section*{Appendix B: Summary (.sum) output file}
+
+% Output the summary file at the end
+\begin{Verbatim}[fontsize=\tiny]
+<<sumappendix, results='asis'>>=
+tmp=readLines(inputs$OutFileSum)
+tmp=tmp[c(-3,-4)] #get rid of the location of the rav file
+tmp[2]=str_wrap(tmp[2],width=120,exdent=5) #title is sometimes long
+cat(tmp,sep="\n")
+@
+\end{Verbatim}
+
+\end{document}

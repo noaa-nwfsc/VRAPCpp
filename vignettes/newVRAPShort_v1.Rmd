@@ -1,0 +1,770 @@
+---
+title: "New VRAP proposal Dec-2017"
+author: "Martin Liermann"
+date: "December 2017"
+output: 
+  rmarkdown::html_vignette:
+    code_folding: hide
+    toc: TRUE
+    toc_float: TRUE
+vignette: >
+  %\VignetteIndexEntry{Background}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+workingDirectory <- "C:\\Users\\maddy\\Documents\\martinWork\\newVRAP"
+
+runSims <- FALSE # set this to true to run all simulations
+
+# note that using .at(i,j) for indexing in c++ is safer because it includes bounds checks.
+## the following was necessary to get the c++ code to compile
+Sys.setenv(PATH = paste("C:/Rtools/bin", Sys.getenv("PATH"), sep=";"))
+Sys.setenv(BINPREF = "C:/Rtools/mingw_$(WIN)/bin/")
+```
+
+## Introduction
+
+In this document we explore alternative implementations of the VRAP model. We reimplement a basic version VRAP first using R and then including C++ code (via Rcpp) to speed things up. VRAP is expanded slightly to allow for auto-correlated log-normal recruitment residuals as well as an alternative to the gamma distribution used in VRAP when there are no co-variates. Model details are described below.
+
+## Model
+
+Start with an initial population of fish in the ocean, $N_{premort:~y,a}$, ages 1 through 5. These fish are assumed to have not yet experienced natural and fishing morality for the year 
+
+Then, for each age, natural mortality, $mort$, and pre-terminal harvest, $hr$, are applied to generate the post mortality cohort:
+
+$$N_{postmort: y,a} = N_{premort:~y,a}(1-mort_{y,a})(1-hr_{pt:~y,a})$$
+A proportion of these mature,
+
+$$N_{mature:~y,a} = N_{postmort:~y,a}mat_{y,a}$$
+
+while the rest remain to form next years pre-mortality cohort.
+$$N_{premort:~y+1,a+1} = N_{postmort:~y,a}(1-mat_{y,a})$$
+The vacant age 1, population is then refilled using the spawner-recruit relationship. 
+
+$$N_{premort:~y,1} = R_{y} = SRfunc(E_{y},prod,cap)e^{\beta X_{y}}e^{Z_{y}}$$
+based on total adult escapement, $E_{y}$, the spawner-recruit parameters, $prod$ and $cap$, effects of environmental covariates $\beta X_{y}$, and lognormal error with autocorrelation, $Z_{y}$ defined as:
+
+$$Z_{y} \sim Normal(\rho Z_{y-1},\sigma_{rec}\sqrt{1-\rho^2})$$
+Note: The current VRAP assumes gamma distributed residuals if there are no covariates.
+
+Total adult escapement is the sum of the mature age 3-5 fish after the terminal harvest.
+
+$$E_y = \sum_{a=3}^5N_{postmort:~y,a}(1-hr_{t:~y,a})$$
+
+## ER calibration
+
+Because the model is parameterized in terms of age-specific calendar year harvest rates, as opposed to exploitation rates, there needs to be a process of figuring out what harvest rates to use to achieve the desired exploitation rates. The calendar year exploitation rate is defined here as the total adult equivalent (AEQ) harvest in a year ($harv_{AEQ:~y}$) divided by escapement plus the harvest.
+
+$$ER_y = {harv_{AEQ:~y} \over {harv_{AEQ:~y}+Esc_y}}$$
+Here $harv_{AEQ:~y}$ is equal to the total terminal harvest plus the AEQ adjusted non-terminal harvest.
+
+$$harv_{AEQ:~y} = \sum_{a=1}^{5} \left(harv_{PT:~y,a}AEQ_{a} + harv_{T:~y,a}\right)$$
+where the preterminal (mixed maturity) harvest is
+
+$$harv_{PT:~y,a} = N_{premort:~y,a}(1-mort_{y,a})hr_{pt:~y,a}$$
+
+and the terminal (mature) harvest is
+
+$$harv_{T:~y,a} = N_{premort:~y,a}(1-mort_{y,a})(1-hr_{pt:~y,a})hr_{t:~y,a}$$
+
+The adult equivalents, $AEQ$, is defined with a recurrence relationship:
+
+$$AEQ_5 = mat_5$$
+$$AEQ_{a} = mat_{a} + (1 - mat_{a})  AEQ_{a+1}  (1-mort_{a+1})$$
+
+Notice that these $AEQ$ values are applied post natural mortality.
+
+Lets look at some code that scales the harvest rate to achieve the target exploitation rate.
+
+Let's start by defining the initial population and necessary parameteters
+```{r}
+# initial calendar year population (ages 1 - 5)
+initPop <- c(8000,4000,2000,700,250)
+
+# harvest rates (these will evenutally be scaled)
+HRt <- c(0,0.05,0.2,0.4,0.1)     # pre-termina or mixed-maturity FR
+HRpt <- c(0,0.03, 0.2, 0.3, 0.2) # terminal or mature FR
+
+# maturation rates
+mat <- c(0,0.01,0.15,0.7,1)
+
+# natural mortality
+mort <- c(0.5,0.4,0.3,0.2,0.1)
+```
+
+We can calculate adult equivalents using the recurrence equation above.
+
+```{r}
+AEQ = c(0,0,0,0,mat[5]) 
+for(age in 4:2){
+  AEQ[age] = mat[age] + (1-mort[age+1]) * (1 - mat[age]) * AEQ[age+1]
+}
+```
+
+Now let's calculate the exploitation rate based on this information. Here I used code straight from the VRAP CompEscpmnt.R function.
+
+```{r}
+# initialize cohort
+Cohort <- initPop
+
+### Code straight from the VRAP function CompEscpmnt.R ###
+# COMPUTE PRETERMINAL MORTALITY AND UPDATE COHORT
+PTMort = HRpt * Cohort
+TempCohort = Cohort - PTMort
+# COMPUTE MATURE RUN AND UPDATE COHORT
+MatRun = TempCohort * mat
+TempCohort = TempCohort - MatRun
+# COMPUTE MATURE MORTALITY AND ESCAPEMENT
+MatMort = HRt * MatRun
+Escpmnt = MatRun - MatMort #spawners
+Escpmnt[Escpmnt < 1] = 0
+# COMPUTE AEQ TOTAL MORTALITY EXPLOITATION RATE
+AEQMort = AEQ * PTMort + MatMort
+TotAEQMort = sum(AEQMort)
+TotEscpmnt = sum(Escpmnt)
+### End code ###
+
+# exploitation rate
+ER <- TotAEQMort/(TotAEQMort+TotEscpmnt)
+```
+
+We can simplify this code as follows
+```{r}
+# we can simplify the code above to:
+PTMort <- HRpt * Cohort                                        
+MatMort <- HRt * Cohort * (1 - HRpt) * mat 
+AEQmort <- PTMort * AEQ + MatMort 
+Escapmnt <- Cohort * (1 - HRpt) * (1 - HRt) * mat 
+ER <- sum(AEQmort)/(sum(AEQmort)+sum(Escpmnt))
+
+# or even simpler:
+AEQmort <- Cohort*(HRpt*AEQ + (1-HRpt)*mat*HRt)  # AEQMort
+Escpmnt <- Cohort*(1-HRpt)*(1-HRt)*mat           # Escapmnt
+ER <- sum(AEQmort)/(sum(AEQmort)+sum(Escpmnt))   # Exploitation rate
+```
+
+Now that we can calculate the exploitation rate we can create an algorithm to adjust the harvest rates until the target exploitation rate is achieved. This is accomplished by starting with a scaling factor of 1, `HRscale`, and then multiplying it by the ratio of the target exploitation rate divided by the actual exploitation rate. This process is repeated until the actual exploitation rate is sufficiently close to the target.
+
+```{r}
+targetER <- 0.4  
+HRscale <- 1  # multiply this times the harvest rates.
+repeat{
+  # adjust preterminal and terminal fishing rates
+  HRptAdj <- HRpt*HRscale 
+  HRtAdj <- HRt*HRscale 
+  # calculate AEQ fishing mortality, escapement, and the exploitation rate
+  AEQmort <- Cohort*(HRptAdj*AEQ + (1-HRptAdj)*mat*HRtAdj) 
+  Escpmnt <- Cohort*(1-HRptAdj)*(1-HRtAdj)*mat 
+  ER <- sum(AEQmort)/(sum(AEQmort)+sum(Escpmnt))
+  # calculate the error rate (how far the actual ER is from the target)
+  ERerror <- abs(ER-targetER)/targetER  
+  # print the results
+  cat(paste("actual ER = ",round(ER,3),",  goal = ",targetER,",  abs(actual-target)/target = ",round(ERerror,3),"\n",sep=""))
+  # exit loop if you are close enough
+  if(ERerror < 0.001) break else HRscale <- HRscale*targetER/ER
+}
+
+```
+
+
+## Reimplementation of VRAP in R
+
+Here we create a new VRAP function that takes an input list and returns the simulations. These can then be post-processed with a separate function to generate the desired RER statistics. This version implements a simplified version of VRAP without many of the options. However, it does allow for auto-correlated lognormal recruitment residuals, which is only an option when covariates are included in the original vRAP. This option is made available through the parameter errorType. 
+
+First we define an input list that includes all of the necessary information to run the simulation.
+
+```{r}
+input <- list(
+  # define the productivity and capacity parameters for the spawner-recruit function
+  prod = 2,
+  cap = 1000,
+  
+  # maturation rates
+  mat = c(0,0.01,0.15,0.7,1),
+
+  # natural mortality
+  mort = c(0.5,0.4,0.3,0.2,0.1),
+  
+  # harvest rates (these will evenutally be scaled)
+  HRt = c(0,0.05,0.2,0.4,0.1),     # pre-terminal or mixed-maturity FR
+  HRpt = c(0,0.03, 0.2, 0.3, 0.2), # terminal or mature FR
+
+  # initial popultion
+  initPop = c(8000,4000,2000,700,250),
+
+  # the type of distribution used for the recruitment residuals (gamma or logNormal)
+  errorType = "gamma",
+  
+  # If errorType == "gamma" SRerrorA and SRerror B are 
+  #   - the shape and scale parameters of the gamma distribution.
+  # If errorType == "logNormal" they are the
+  #   - standard deviation and lag 1 autocorrelation of a normal distribution with mean zero
+  #     that is then exponentiated.
+  SRerrorA = 5.7749,
+  SRerrorB = 0.1875,
+  
+  # set management error gamma parameters
+  managementError = TRUE,
+  manageErrorA = 100,
+  manageErrorB = 1/100,
+  
+  # parametere for setting exploitation rate start, stop and steps
+  ERstart = 0,
+  ERstepSize = 0.02, # stepsize in terms of the exploitation rate, baseER*stepSize  
+  ERnumSteps = 40, # number of steps, ERmax/stepSize
+    
+  numYears = 25, # years in each forward projectiong
+  numSims = 1000 # the number of times the simulation should be repeated.
+)
+
+```
+
+Then we create the function to run the simulations. This allows us to iterate over exploitation rates.
+
+```{r}
+runSimulationsR <- function(input,rngSeed=NULL,verbose=FALSE){
+  # initialize output array
+  totEsc <- array(NA,dim=c(input$ERnumSteps+1,input$numSims,input$numYears))
+  HRscale <- 1 # multiply this times the harvest rates.
+  # calcualte the target exploitation rates based on start, step size, and steps
+  targetER <- input$ERstart + input$ERstepSize * (0:input$ERnumSteps)
+  # calculate AEQ and recruitsFromAgeOneFish
+  AEQ <- c(0,0,0,0,input$mat[5]) 
+  for(age in 4:2){
+    AEQ[age] <- input$mat[age] + (1-input$mort[age+1]) * (1 - input$mat[age]) * AEQ[age+1]
+  }
+  recruitsFromAgeOneFish <- (1-input$mort[1])*(1-input$mort[2])*AEQ[2]
+
+  for(ERind in 1:(input$ERnumSteps+1)){
+    print(paste("============= target ER =",targetER[ERind]))
+    for(sim in 1:input$numSims){ # loop through 1000 25 yr simulations
+      logSRerror <- rnorm(1, 0, sd=input$SRerrorB) # not currently used
+      Cohort <- input$initPop # initialize population
+      for(year in 1:25){ # loop through 25 year simulation
+        # apply natural mortality
+        Cohort <- Cohort*(1-input$mort)
+        # generate management error
+        actualER <- targetER[ERind]
+        if(input$managementError) 
+          actualER <- min(actualER * rgamma(1, input$manageErrorA, scale=input$manageErrorB),1)
+        # loop to achieve target exploitation rate unless targetER=0
+        if(actualER==0){
+          HRptAdj <- 0
+          HRtAdj <- 0
+        }else{
+          numTrys <- 1
+          lastAEQmort <- 99
+          repeat{
+            # adjust preterminal and terminal fishing rates
+            HRptAdj <- input$HRpt*HRscale 
+            HRtAdj <- input$HRt*HRscale
+            # can't be larger than 1
+            HRptAdj[HRptAdj>1] <- 1
+            HRtAdj[HRtAdj>1] <- 1
+            # calculate AEQ fishing mortality, escapement, and the exploitation rate
+            AEQmort <- Cohort*(HRptAdj*AEQ + (1-HRptAdj)*input$mat*HRtAdj) 
+            Escpmnt <- Cohort*(1-HRptAdj)*(1-HRtAdj)*input$mat
+            totAEQmort <- sum(AEQmort)
+            totEscpmnt <- sum(Escpmnt)
+            ER <- totAEQmort/(totAEQmort+totEscpmnt)
+            # calculate the error rate (how far the actual ER is from the target)
+            ERerror <- abs(ER-actualER)/actualER  
+            # exit loop if you are close enough OR other criteria are met. Otherwise adjust HRscale.
+            if(totAEQmort+totEscpmnt < 1 | totAEQmort==0 | numTrys > 100 | totAEQmort==lastAEQmort){
+              if(verbose){
+                cat(paste("Target ER = ",targetER[ERind],"  Sim = ",sim,"  Year = ",year,
+                  "  goal - actual = ",round(actualER,3)," - ",round(ER,3),
+                  "  HRscale = ",round(HRscale,3),"  numTrys = ",numTrys,
+                  "  totEsc = ",round(totEscpmnt,1),"  totAEQmort = ",round(totAEQmort,1),"\n",sep=""))
+              }
+              break
+            }else if(ERerror < 0.001) break
+            else HRscale <- HRscale*actualER/ER
+            numTrys <- numTrys+1
+            lastAEQmort <- totAEQmort
+          } 
+        }
+        # calculate new cohort
+        newCohort <- Cohort*(1-HRptAdj)*(1-input$mat)
+        Escpmnt <- Cohort*(1-HRptAdj)*(1-HRtAdj)*input$mat
+        Escpmnt[Escpmnt < 1] <- 0
+        # calculate adult escapement
+        adultEscapement <- sum(Escpmnt[3:5])
+        # age the cohort
+        Cohort[2:5] <- newCohort[1:4]
+        # now fill in age 1 fish using the spawner-recruit function.
+        AEQrecruits <- input$prod * adultEscapement * exp(-adultEscapement / input$cap)
+        if(input$errorType=="gamma"){
+          SRerror <- rgamma(1,input$SRerrorA,scale=input$SRerrorB)
+        }else if(input$errorType=="logNormal"){
+          # SRerrorA = lognormal sd, SRerrorB = autocorrelation
+          logSRerror <- input$SRerrorB*logSRerror + sqrt(1-input$SRerrorB^2)*rnorm(1, 0, input$SRerrorA)
+          SRerror <- exp(logSRerror)
+        }
+        Cohort[1] <- AEQrecruits*SRerror/recruitsFromAgeOneFish
+        totEsc[ERind,sim,year] <- sum(Escpmnt[2:5])
+      }
+    }
+  }
+  list(input=input, totEsc=totEsc)
+}
+```
+
+Finally we can use this function to generate simulated data.
+
+```{r results="hide"}
+setwd(workingDirectory)
+# Only run if var runSims is TRUE, otherwise use saved results.
+if(runSims){
+  results <- runSimulationsR(input)
+  save(results,file="results.Rdat")
+}else{
+  load("results.Rdat")
+} 
+```
+
+## Compared to results from the VRAP package
+
+To compare this to the results from the VRAP package we need to convert the input list into a rav file. This can be accomplished with a simple function.
+
+```{r}
+generateRavFile <- function(input,ravFileName="tmp.rav"){
+  if(input$errorType != "gamma"){
+    stop("ERROR: generateRavFile requires errorType = gamma")
+  }
+  ravText <- paste("Example, Title
+1, Random seed; 0 gives random seed; numbers give fixed seed
+1000, Number of runs
+25, Number of years
+2,5 , Minimum and maximum age (for now this is fixed; do not change)
+0.001, Convergence criterion (% error) for target ER
+YES, 0, -Inf, Center covariate flag and log MS and log Flow mean
+Ric2, Spawner Recruit function (Ric2;Ric3;Ric4; Bev2;Bev3;Bev4; Hoc2;Hoc3;Hoc4)
+",input$prod,",",input$cap,", S/R a; b parameters; c (Marine); d (Freshwater)
+Mean and CV  for marine survival index (M^c)
+Trend; Cycle; or Autoc(orrelation) for Marine Survival?
+Trend/Cycle parameters: rate for trend- amplitude- period & starting pt for cycle; correl for autocorrelation
+Mean and CV  for flow (or other fw) index (exp(dF))
+Trend; Cycle; or Autoc(orrelation) for Flow?
+Trend/Cycle parameters: rate for trend- amplitude- period & starting pt for cycle; correl for autocorrelation
+NO, Depensation? (YES or NO)
+300, 63,1, 1) Esc. level for depensation to start 2) QET 3)% predicted return at QET (or for r/s=1 third parameter = 1)
+YES, Determine recruits from adult spawners (not total)?
+YES, Stock-recruit variation (YES or NO)
+",input$SRerrorA,",",input$SRerrorB,", 0, A and B parameters S/R error and error autocorrelation
+NO, Smolt to adult survival w/variation (YES or NO);  if Yes beta variation on cohort size (2 parameters) on next line
+Beta distribution a and b parameters and autocorrelation
+0, Number of breakpoints; in escapement to trigger management action
+1, Level to use as base regime
+0.67, base exploitation rate
+YES, Include error (YES or NO) in ER management; Norma Jean Sands: If no put zeros in cells A27 and B27
+",input$manageErrorA,",",input$manageErrorB,", Gamma parameters for management error
+200, Lower escapement threshold
+400, 5, Upper escapement threshold (MSY);  # yrs to ave.
+ER, Step ER (ER) or  Pop Capacity (Pop)?
+",input$ERstepSize/0.67,",",", Buffer step size as percent of base ER or Pop capacity
+",input$ERstart/0.67,",",(input$ERstart+input$ERnumSteps*input$ERstepSize)/0.67,", Min & max buffer (x base for start & end)
+",input$initPop[1],", Initial population size at Age  1 
+",input$initPop[2],", Initial population size at Age  2 
+",input$initPop[3],", Initial population size at Age  3 
+",input$initPop[4],", Initial population size at Age  4 
+",input$initPop[5],", Initial population size at Age  5 
+0.5, Age 1 natural mortality
+0.4, Age 2 natural mortality
+0.3, Age 3 natural mortality
+0.2, Age 4 natural mortality
+0.1, Age 5 natural mortality
+",input$mat[2],", Age 2 average maturation rate
+",input$mat[3],", Age 3 average maturation rate
+",input$mat[4],", Age 4 average maturation rate
+",input$mat[5],", Age 5 average maturation rate
+",input$HRpt[2],",",input$HRt[2],", Age 2 average mixed-maturity and mature fishery fishing rates
+",input$HRpt[3],",",input$HRt[3],", Age 3 average mixed-maturity and mature fishery fishing rates
+",input$HRpt[4],",",input$HRt[4],", Age 4 average mixed-maturity and mature fishery fishing rates
+",input$HRpt[5],",",input$HRt[5],", Age 5 average mixed-maturity and mature fishery fishing rates
+endofinput, end of input indicator
+",sep="")
+  
+  cat(ravText,file=ravFileName)
+}
+```
+
+Then we can run the VRAP procedure using the Main function from the VRAP package.
+
+```{r message=FALSE}
+setwd(workingDirectory)
+generateRavFile(input)
+
+# Either use the VRAP Main function to run VRAP (twice) and then save the results, or load the saved results. 
+if(runSims){
+  library(VRAP)
+  vrapOut1 <- Main(InFile="tmp.rav", OutFileBase="vrapOut.tmp", NRuns=1000, silent=TRUE, lcores=4)
+  save(vrapOut1,file="vrapOut1.Rdat")
+  vrapOut2 <- Main(InFile="tmp.rav", OutFileBase="vrapOut.tmp", NRuns=1000, silent=TRUE, lcores=4)
+  save(vrapOut2,file="vrapOut2.Rdat")
+}else{
+  load("vrapOut1.Rdat")
+  load("vrapOut2.Rdat")
+}
+```
+
+Some plots comparing the average escapement values.
+
+```{r}
+# first create the functions
+plotSimAvg <- function(simDat,vrapOut){
+  avgs <- apply(simDat[,,],c(1,3),mean)
+  plot(1,1,xlim=c(1,25),ylim=range(c(vrapOut$SummaryStats$AvgEscpmnt,avgs)),xlab="Year", ylab="Average escapement", type="n", bty="l")
+  for(i in 1:(input$ERnumSteps+1)){
+    lines(1:25,vrapOut$SummaryStats$AvgEscpmnt[i,])
+    lines(1:25,avgs[i,],lty=2)
+  }
+  legend(x=15,y=max(avgs),legend=c("VRAP","Simulations above"),lty=c(1,2))
+}
+
+compPlot<- function(vrapOut1,vrapOut2){
+  plot(1,1,xlim=c(1,25),ylim=range(c(vrapOut1$SummaryStats$AvgEscpmnt,vrapOut2$SummaryStats$AvgEscpmnt)),xlab="Year", ylab="Average escapement", type="n", bty="l")
+  for(i in 1:(input$ERnumSteps+1)){
+    lines(1:25,vrapOut1$SummaryStats$AvgEscpmnt[i,])
+    lines(1:25,vrapOut2$SummaryStats$AvgEscpmnt[i,],lty=2)
+  }
+  legend(x=15,y=max(vrapOut1$SummaryStats$AvgEscpmnt),legend=c("VRAP 1","VRAP 2"),lty=c(1,2))
+}
+
+# then use the functions to create the plots
+plotSimAvg(results$totEsc,vrapOut1)
+compPlot(vrapOut1,vrapOut2)
+
+```
+
+Finally, we calculate the proportion of years that escapement is below the lower critical escapement threshold (200 in our example) and compare this to what we get from the VRAP output
+
+```{r}
+bEcrit <- apply(results$totEsc,1,function(x) mean(x<200))
+
+plot(1,1,xlim=c(0,0.8),ylim=c(0,1),xlab="Year",ylab="% years below critical Esc threshold",type="n",bty="l")
+targetER <- input$ERstart + input$ERstepSize * (0:input$ERnumSteps)
+lines(targetER,bEcrit)
+lines(targetER,vrapOut1$SummaryStats$AvgECrit,lty=3)
+lines(targetER,vrapOut2$SummaryStats$AvgECrit,lty=3)
+legend(x=0,y=0.8,legend=c("Simulations above","VRAP (2 sims)"),lty=c(1,3))
+```
+
+We can also look a the proportion of years that the geometric mean of the last 5 years of escapement is greater than or equal to the rebuilding escapement threshold (400 in this example).
+
+```{r}
+n <- input$numYears
+meanVals <- apply(results$totEsc,c(1,2),function(x) exp(mean(log(x[(n-4):n]))))
+aRcrit <- apply(meanVals,1,function(x) mean(x>=400))
+
+plot(1,1,xlim=c(0,0.8),ylim=c(0,1),xlab="Year",ylab="% years above rebuilding esc threshold",type="n",bty="l")
+targetER <- input$ERstart + input$ERstepSize * (0:input$ERnumSteps)
+lines(targetER,aRcrit)
+lines(targetER,vrapOut1$SummaryStats$PropRec,lty=3)
+lines(targetER,vrapOut2$SummaryStats$PropRec,lty=3)
+legend(x=0.5,y=0.8,legend=c("Simulations above","VRAP (2 sims)"),lty=c(1,3))
+```
+
+## Faster with Rcpp and C++ 
+
+The new simplifed VRAP function appears to produce results that are comparable to the original VRAP code (as defined by the VRAP package). However, the run times are comparable (i.e. not that much faster than the original).
+
+Here, I re-implement most of the simulation code in a C++ function, simFish, using the Rcpp package. The function simFish operates on a single exploitation rate. The code that iterates over different exploitation rates is provided in a separate R function.
+
+```{r engine='Rcpp'}
+#include <Rcpp.h>
+using namespace Rcpp;
+
+// [[Rcpp::export]]
+NumericMatrix simFish(int numSims, int numYears, 
+                      double targetER, 
+                      bool managementError,
+                      double manageErrorA, double manageErrorB,
+                      String errorType,
+                      double SRerrorA, double SRerrorB,
+                      NumericVector initPop,
+                      double prod, double cap,
+                      NumericVector mat, NumericVector mort,
+                      NumericVector HRpt, NumericVector HRt,
+                      NumericVector AEQ){
+  
+  NumericMatrix totEsc(numSims, numYears);
+  NumericVector Cohort(5);
+  NumericVector newCohort(5);
+  NumericVector HRptAdj(5);
+  NumericVector HRtAdj(5); 
+  NumericVector AEQmort(5);
+  NumericVector Escpmnt(5);
+  
+  double lastAEQmort, HRscale, totAEQmort, totEscpmnt, adultEscapement, 
+         AEQrecruits, ER, realizedER, ERerror, SRerror, logSRerror;
+  bool converged;
+  int numTrys;
+  
+  double recruitsFromAgeOneFish = (1-mort(0))*(1-mort(1))*AEQ(1);
+  
+  //Rcpp::Rcout << "targetER=" << targetER << "\n";
+  
+  for(int sim = 0; sim < numSims; sim++) { // loop through simulations
+    Cohort = clone(initPop); // initialize population. Use clone to create a deep copy (i.e don't just copy a pointer)
+    logSRerror = rnorm(1, 0, SRerrorA)[0];
+    for(int year = 0; year < numYears; year++) { // loop through years
+      Cohort = Cohort*(1-mort);
+      if(managementError) ER = std::min(targetER * rgamma(1, manageErrorA, manageErrorB)[0],1.0); else ER = targetER;
+      //Rcpp::Rcout << ER << ",";
+      if(ER==0){
+        std::fill(HRptAdj.begin(), HRptAdj.end(), 0); // set all elements to 0
+        std::fill(HRtAdj.begin(), HRtAdj.end(), 0);   // set all elements to 0
+      }else{
+        numTrys = 1;
+        lastAEQmort = 99;
+        converged = false;
+        HRscale = 1;
+        // Rcpp::Rcout <<"year=" << year << "Cohort=" << Cohort << "\n";
+        while(!converged){
+          // adjust preterminal and terminal fishing rates
+          HRptAdj = pmin(HRpt*HRscale,1); 
+          HRtAdj = pmin(HRt*HRscale,1);
+          
+          // calculate AEQ fishing mortality, escapement, and the exploitation rate
+          AEQmort = Cohort*(HRptAdj*AEQ + (1-HRptAdj)*mat*HRtAdj);
+          Escpmnt = Cohort*(1-HRptAdj)*(1-HRtAdj)*mat;
+          totAEQmort = sum(AEQmort);
+          totEscpmnt = sum(Escpmnt);
+          realizedER = totAEQmort/(totAEQmort+totEscpmnt);
+          // calculate the error rate (how far the actual ER is from the target)
+          // Rcpp::Rcout << "year=" << year << "ER=" << ER << "\n";
+          ERerror = std::abs(ER-realizedER)/ER;  
+          // exit loop if you are close enough OR other criteria are met
+          
+          //Rcpp::Rcout << "HRptAdj,HRtAdj=" << HRptAdj << "," << HRtAdj << "\n";
+          //Rcpp::Rcout << "numTrys=" << numTrys << "   HRscale=" << HRscale << "\n";
+          //Rcpp::Rcout << "totAEQmort=" << totAEQmort << "   totEscpmnt=" << totEscpmnt << "\n";
+          //Rcpp::Rcout << "ER=" << ER << "   realizedER=" << realizedER << "\n";
+          //Rcpp::Rcout << "ERerror=" << ERerror << "\n";
+          
+          if((totAEQmort+totEscpmnt < 1) || (totAEQmort==0) || (numTrys > 100) || (totAEQmort==lastAEQmort)){
+            converged = true;
+          }else if(ERerror < 0.001){
+            converged = true;
+          }else{
+            HRscale = HRscale*ER/realizedER;
+          } 
+          numTrys = numTrys+1;
+          lastAEQmort = totAEQmort;
+        } 
+      }
+      // calculate new cohort
+      newCohort = Cohort*(1-HRptAdj)*(1-mat);
+      // Rcpp::Rcout << "newCohort=" << newCohort << "\n";
+      Escpmnt = pmax(Cohort*(1-HRptAdj)*(1-HRtAdj)*mat,0);
+      // calculate adult escapement
+      adultEscapement = Escpmnt(2) + Escpmnt(3) + Escpmnt(4);
+      // age the cohort
+      for(int ageInd = 0; ageInd < 4; ageInd++) Cohort(ageInd+1) = newCohort(ageInd);
+      // now fill in age 1 fish using the spawner-recruit function.
+      AEQrecruits = prod * adultEscapement * exp(-adultEscapement / cap);
+      if(errorType=="gamma"){
+        SRerror = rgamma(1,SRerrorA,SRerrorB)[0];
+      }else if(errorType=="logNormal"){
+        // SRerrorA = lognormal sd, SRerrorB = autocorrelation
+        logSRerror = SRerrorB*logSRerror + sqrt(1-pow(SRerrorB,2.0))*rnorm(1, 0, SRerrorA)[0];
+        SRerror = exp(logSRerror);
+      }
+      Cohort(0) = AEQrecruits*SRerror/recruitsFromAgeOneFish;
+      totEsc(sim,year) = Escpmnt(1) + Escpmnt(2) + Escpmnt(3) + Escpmnt(4);
+    }
+  }
+  return totEsc;
+}
+```
+
+The C++ function can be called from R as follows.
+
+```{r}
+# calculate AEQ
+AEQ <- c(0,0,0,0,input$mat[5]) 
+for(age in 4:2){
+  AEQ[age] <- input$mat[age] + (1-input$mort[age+1]) * (1 - input$mat[age]) * AEQ[age+1]
+}
+
+# run the simulation
+xx <- simFish(numSims=1000,numYears=25,targetER=0.2,
+              managementError=input$managementError, 
+              manageErrorA=input$manageErrorA,manageErrorB=input$manageErrorB,
+              errorType=input$errorType,
+              SRerrorA=input$SRerrorA,SRerrorB=input$SRerrorB,
+              initPop=input$initPop,prod=input$prod,cap=input$cap,
+              mat=input$mat,mort=input$mort,
+              HRpt=input$HRpt,HRt=input$HRt,AEQ=AEQ)
+
+# print out some of the results
+print(xx[1:10,1:10])
+
+```
+
+Now we can recreate the full R function that iterates through the different exploitation rates and calls the c++ function.
+
+```{r}
+runSimulationsC <- function(input,rngSeed=NULL){
+  # initialize output array
+  totEsc <- array(NA,dim=c(input$ERnumSteps+1,input$numSims,input$numYears))
+  HRscale <- 1 # multiply this times the harvest rates.
+  # calcualte the target exploitation rates based on start, step size, and steps
+  targetER <- input$ERstart + input$ERstepSize * (0:input$ERnumSteps)
+  # calculate AEQ and recruitsFromAgeOneFish
+  AEQ <- c(0,0,0,0,input$mat[5]) 
+  for(age in 4:2){
+    AEQ[age] <- input$mat[age] + (1-input$mort[age+1]) * (1 - input$mat[age]) * AEQ[age+1]
+  }
+  recruitsFromAgeOneFish <- (1-input$mort[1])*(1-input$mort[2])*AEQ[2]
+  for(ERind in 1:(input$ERnumSteps+1)){
+    print(paste("============= target ER =",targetER[ERind]))
+    totEsc[ERind,,] <- simFish(numSims=input$numSims,numYears=input$numYears,targetER=targetER[ERind],
+              managementError=input$managementError, 
+              manageErrorA=input$manageErrorA,manageErrorB=input$manageErrorB,
+              errorType=input$errorType,
+              SRerrorA=input$SRerrorA,SRerrorB=input$SRerrorB,
+              initPop=input$initPop,prod=input$prod,cap=input$cap,
+              mat=input$mat,mort=input$mort,
+              HRpt=input$HRpt,HRt=input$HRt,AEQ=AEQ)
+
+  }
+  list(input=input, totEsc=totEsc)
+}
+```
+
+And then finally we can use this new R function to generate simulations for the range of exploitation rates.
+
+```{r results="hide"}
+cResults <- runSimulationsC(input)
+```
+
+Now let's compare the results to the original VRAP (Main from VRAP library) by looking at the average total escapement.
+
+```{r}
+plotSimAvg(cResults$totEsc,vrapOut1)
+```
+
+And the proportion of time below the critical threshold.
+
+```{r}
+bEcrit <- apply(cResults$totEsc,1,function(x) mean(x<200))
+
+plot(1,1,xlim=c(0,0.8),ylim=c(0,1),xlab="Year",ylab="% years below critical Esc threshold",type="n",bty="l")
+targetER <- input$ERstart + input$ERstepSize * (0:input$ERnumSteps)
+lines(targetER,bEcrit)
+lines(targetER,vrapOut1$SummaryStats$AvgECrit,lty=3)
+lines(targetER,vrapOut2$SummaryStats$AvgECrit,lty=3)
+legend(x=0,y=0.8,legend=c("Simulations above","VRAP (2 sims)"),lty=c(1,3))
+```
+
+Now that we have comfirmed that both the R and C++ implementations of the VRAP code our producing results comparable to the original VRAP we can look at the difference in speed between the R an C++ implementation. 
+
+```{r  results="hide"}
+t1 <- Sys.time()
+cResults <- runSimulationsC(input)
+t2 <- Sys.time()
+rResults <- runSimulationsR(input)
+t3 <- Sys.time()
+```
+
+```{r results="hold"}
+cat(paste("c-version ",format(t2-t1),"\n",sep=""))
+cat(paste("r-version ",format(t3-t2),"\n",sep=""))
+tRat <- round(100*as.numeric(difftime(t2,t1,units="secs"))/as.numeric(difftime(t3,t2,units="secs")),1)
+cat(paste("The c-version takes ",tRat,"% as much time as the r-version\n",sep=""))
+cat(paste("Or is ",round(100/tRat)," times faster.\n",sep=""))
+```
+
+## log normal residuals with autocorrelation
+
+In the new implementations of the VRAP (both R and C++) the errorType parameter can be set to "gamma" or "logNormal". This determines the distribution of the recruitment residuals. For the results above we used the "gamma" option which is what is assumed when there are no covariates in the original VRAP. In these new implementations, the logNormal distribution allows for autocorrelated logNormal recruitment residuals (as described in the model section above). Here we test this option. 
+
+First lets create a new input list with errorType set to "logNormal"
+
+```{r}
+input2 <- input
+input2$errorType <- "logNormal"
+input2$SRerrorA <- 0.5   # lognormal stdev = 0.5
+input2$SRerrorB <- 0.75  # autocorrelation = 0.75
+```
+
+Now run with the new r and c++ implementations.
+
+```{r results="hide"}
+resultsLNr <- runSimulationsR(input2)
+resultsLNc <- runSimulationsC(input2)
+```
+
+First lets make sure the R and C++ versions produce similar results.
+
+```{r}
+bEcritR <- apply(resultsLNr$totEsc,1,function(x) mean(x<200))
+bEcritC <- apply(resultsLNc$totEsc,1,function(x) mean(x<200))
+
+plot(1,1,xlim=c(0,0.8),ylim=c(0,1),xlab="Year",ylab="% years below critical Esc threshold",type="n",bty="l")
+targetER <- input2$ERstart + input2$ERstepSize * (0:input2$ERnumSteps)
+lines(targetER,bEcritR)
+lines(targetER,bEcritC,lty=3)
+legend(x=0,y=0.8,legend=c("R function","C++ function"),lty=c(1,3))
+```
+
+
+Now let's compare simulations with and without autocorrelation.
+
+```{r results="hide"}
+input3 <- input2
+input3$SRerrorB <- 0
+resultsLNc2 <- runSimulationsC(input3)
+```
+
+We can look at a few individual time series of total escapement for runs with and without autocorrelation so see if there is any signs of the autocorrelation in the recruitment residuals translating to patterns in total escapement.
+
+```{r fig.width=7, fig.height=7}
+par(mfrow=c(3,1),mar=c(1,1,1,1),oma=c(5,4,5,1))
+plot(1:25,resultsLNc$totEsc[1,1,],type="o",pch=16,xlab="",ylab="")
+plot(1:25,resultsLNc$totEsc[2,1,],type="o",pch=16,xlab="",ylab="")
+plot(1:25,resultsLNc$totEsc[3,1,],type="o",pch=16,xlab="",ylab="")
+mtext(side=1,outer=TRUE,text="Year",line=1)
+mtext(side=2,outer=TRUE,text="Total escapement",line=1)
+mtext(side=3,outer=TRUE,text="Autocor=0.75",line=1)
+```
+
+```{r fig.width=7, fig.height=7}
+par(mfrow=c(3,1),mar=c(1,1,1,1),oma=c(5,4,5,1))
+plot(1:25,resultsLNc2$totEsc[1,1,],type="o",pch=16,xlab="",ylab="")
+plot(1:25,resultsLNc2$totEsc[2,1,],type="o",pch=16,xlab="",ylab="")
+plot(1:25,resultsLNc2$totEsc[3,1,],type="o",pch=16,xlab="",ylab="")
+mtext(side=1,outer=TRUE,text="Year",line=1)
+mtext(side=2,outer=TRUE,text="Total escapement",line=1)
+mtext(side=3,outer=TRUE,text="Autocor=0",line=1)
+```
+
+And we can compare the proportion of years below the critical threshold for the runs with and without autocorrelation. Notice that the median and sd are the same for the two runs.
+
+```{r}
+bEcritC <- apply(resultsLNc$totEsc,1,function(x) mean(x<200))
+bEcritC2 <- apply(resultsLNc2$totEsc,1,function(x) mean(x<200))
+
+plot(1,1,xlim=c(0,0.8),ylim=c(0,1),xlab="Year",ylab="% years below critical Esc threshold",type="n",bty="l")
+targetER <- input2$ERstart + input2$ERstepSize * (0:input2$ERnumSteps)
+lines(targetER,bEcritC)
+lines(targetER,bEcritC2,lty=3)
+legend(x=0,y=0.8,legend=c("autocor=0.75","autocor=0"),lty=c(1,3))
+
+```
+
+As might be expected, strong autocorrelation (0.75) leads to a higher proportion of years below the threshold.
+
+## Next steps
+
+-  Allow for other SR functions
+-  Allow for covariates?
+-  Allow for a vector with numYears values describing the median of recruitment residuals. This could be included as a coraviate with coefficient fixed at 1.
+-  Concider other residual structures (e.g. auto-correlated sequence + random noise).
+
+

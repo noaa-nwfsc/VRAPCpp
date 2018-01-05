@@ -1,0 +1,16 @@
+## export functions
+export(
+Main,
+VRAP,
+ComputeRER,
+WriteReport
+)
+
+## register S3 methods
+
+## Imports
+import(doParallel)
+import(stringr)
+importFrom(shiny, runApp)
+importFrom("stats","rgamma","rnorm")
+importFrom("utils", "packageVersion", "read.table", "txtProgressBar")

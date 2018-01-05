@@ -1,0 +1,81 @@
+div#spinnerhost { 
+    position:absolute;
+    top: 0%;
+    left: 0%;
+    width: 100%;
+    height: 200%;
+    margin-top: 10px;
+    margin-left: 10px;
+    display:show;
+    background: rgba(230, 230, 230, .9);
+    text-align: center;
+    padding-top: 200px;
+    padding-left: 30px;
+    padding-bottom: 40px;
+    padding-right: 30px;
+    border-radius: 5px;
+    z-index: 500;
+}
+
+div.msgdisplay { 
+    position:absolute;
+    top: 0%;
+    left: 0%;
+    width: 100%;
+    height: 200%;
+    margin-top: 10px;
+    margin-left: 10px;
+    display:show;
+    background: rgba(230, 230, 230, .9);
+    text-align: center;
+    padding-top: 200px;
+    padding-left: 30px;
+    padding-bottom: 40px;
+    padding-right: 30px;
+    border-radius: 5px;
+    z-index: 500;
+}
+
+div#uploadravfilediv {
+    margin-bottom:5px;
+}
+
+div#exdlspacer {
+    margin-bottom:5px;
+}
+
+div#runvrapdiv {
+    margin-top:6px;
+}
+
+div#timest {
+    font-weight:bold;
+    font-style:italic;
+}
+
+div#ravsavebutton {
+    text-align:center
+}
+
+button.closemsg {
+    height: 25px;
+    width: 60px;
+}
+
+td.estSumBody {
+    text-align:right;
+    padding-left:10px;
+}
+
+.tabtext {
+    font-family:monospace;
+}
+
+.shiny-output-error-ravediterror {
+    color:red;
+    text-align:center
+}
+
+#msghost {
+    color: red;
+}

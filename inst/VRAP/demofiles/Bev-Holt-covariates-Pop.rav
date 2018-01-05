@@ -1,0 +1,52 @@
+Pop example of Beverton-Holt VRAP with marine survival and stream flow variability,  Title         
+0,            Random seed; 0 gives random seed; numbers give fixed seed             
+1000,            Number of runs              
+100,           Number of years            
+2,            5,             Minimum and maximum age (for now this is fixed; do not change)       
+0.001,        Convergence criterion (% error) for target ER           
+NO,           Debug file flag             
+Bev4,          Spawner Recruit function (Ric2;Ric3;Ric4; Bev2;Bev3;Bev4; Hoc2;Hoc3;Hoc4)          
+15.3095951150686,           13360.3704238665,           8.49610817614715E-02,       -1.92566215899283E-03,      S/R a; b parameters; c (Marine); d (Freshwater)         
+1.76989677562724,           1.11378865154681,           Mean and CV  for M marine survival index (M^c)          
+Autoc,        Trend; Cycle; or Autoc(orrelation) ?      
+0.41755288550896,           1.75673971349043,           0,            Trend/Cycle parameters: rate and 0 or increment and 1 for trend- amplitude- period & starting pt & scalar for cycle; correl and starting point (if zero is random) for autocorrelation              
+1617.90697674419,           1.7897891763988,            Mean and CV  for F flow (or other fw) index (exp(dF))   
+Autoc,        Trend; Cycle; or Autoc(orrelation) ?      
+-0.161685201023955,         1283.33333333333,           0,            Trend/Cycle parameters: rate and 0 or increment and 1 for trend- amplitude- period & starting pt & scalar for cycle; correl and starting point (if zero is random) for autocorrelation              
+YES,          Depensation? ("YES" or "NO")              
+400,          63,           0,            1) Esc. level for depensation to start 2) QET 3)% predicted return at QET (or for r/s=1 third parameter = 1)    
+YES,          Determine recruits from adult spawners (not total)?     
+YES,           Stock-recruit variation ("YES" or "NO")  
+0,            20.1552763387668,           -0.132797906915484,          A and B parameters S/R error and error autocorrelation 
+NO,            Smolt to adult survival w/variation ("YES" or "NO")    
+Beta distribution a and b parameters and autocorrelation              
+0,            Number of breakpoints       
+1,            Level to use as base regime 
+0.37,          base exploitation rate     
+YES,          Include error ("YES" or "NO") in ER management          
+65.3946,      0.0158,       Gamma parameters for management error     
+416,          Lower escapement threshold  
+1066,         5,            Upper escapement threshold (MSY);  # yrs to ave.        
+Pop,          Step ER (ER) or  Pop Capacity (Pop)?      
+7.48482241340878E-03,        Buffer step size as percent of base ER or Pop capacity               
+7.48482241340878E-03,       0.449089344804527,          Min & max buffer (x base for start & end) 
+5108,          Initial population size at Age 1 of start year (prior to nat mort)   
+2554,          Initial population size at Age 2         
+1478,          Initial population size at Age 3         
+667,           Initial population size at Age 4         
+112,           Initial population size at Age 5         
+0.5,           Age 1 natural mortality    
+0.4,           Age 2 natural mortality    
+0.3,           Age 3 natural mortality    
+0.2,           Age 4 natural mortality    
+0.1,           Age 5 natural mortality    
+1.43432324005842E-02,       Age 2 average maturation rate             
+0.226067824725145,          Age 3 average maturation rate             
+0.685044912939359,          Age 4 average maturation rate             
+1,            Age 5 average maturation rate             
+7.97982424808335E-02,       0.315672687185273,          Age 2 average mixed-maturity and mature fishery fishing rates         
+0.234143029720483,          0.331197585913413,          Age 3 average mixed-maturity and mature fishery fishing rates         
+0.352056542423367,          0.339907561109324,          Age 4 average mixed-maturity and mature fishery fishing rates         
+0.33478625941973,           0.32870153694989,           Age 5 average mixed-maturity and mature fishery fishing rates         
+endofinput,   end of input indicator      
+

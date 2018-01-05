@@ -1,0 +1,16 @@
+Package: VRAP-C
+Type: Package
+Title: VRAP with C++ for RER and Viability Computations
+Version: 1.0
+Date: 2018-01-03
+Depends: R (>= 2.15.0), stringr, shiny, shinyAce, doParallel, knitr, doSNOW, utils
+Author: Martin Liermann, Eli Holmes, Howard Coleman NOAA, Seattle, USA
+Maintainer: Elizabeth Holmes - NOAA Federal <eli.holmes@noaa.gov>
+Description: This is a rewrite of the R version of the VRAP program.  The original VRAP R package was a one-to-one translation from the original Visual Basic code.  VRAP-C is the same equations, but completely re-written by Martin Liermann to be more efficient.  VRAP-C does not have all the functionality of VRAP. Many of the rav options in VRAP were not used and are removed.
+License: GPL-2
+LazyData: yes
+BuildVignettes: yes
+ByteCompile: TRUE
+NeedsCompilation: no
+Packaged: 2017-01-20 22:02:22 UTC; anatin
+RoxygenNote: 6.0.1
