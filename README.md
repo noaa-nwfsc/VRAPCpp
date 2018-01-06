@@ -1,2 +1,2 @@
-# VRAP-C
+# VRAPCpp
 R package for VRAP rewrite

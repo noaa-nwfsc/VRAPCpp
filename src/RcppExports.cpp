@@ -33,11 +33,8 @@ BEGIN_RCPP
 END_RCPP
 }
 
-RcppExport SEXP _VRAP-C_simFish(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-
 static const R_CallMethodDef CallEntries[] = {
     {"_VRAPCpp_simFish", (DL_FUNC) &_VRAPCpp_simFish, 17},
-    {"_VRAP-C_simFish", (DL_FUNC) &_VRAP-C_simFish, 17},
     {NULL, NULL, 0}
 };
 

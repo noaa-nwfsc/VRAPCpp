@@ -1,4 +1,4 @@
-useDynLib(VRAP-C, .registration=TRUE)
+useDynLib(VRAPCpp, .registration=TRUE)
 exportPattern("^[[:alpha:]]+")
 importFrom(Rcpp, evalCpp)
 
