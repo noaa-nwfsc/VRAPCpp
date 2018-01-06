@@ -1,4 +1,12 @@
-generateRavFile <- function(input,ravFileName="tmp.rav"){
+#' @title Write Rav File from input list
+#' @description Takes the input list and write a .rav file. 
+#' @details Takes the input list and write a .rav file that can be input into the VRAP function \link[VRAP]{Main}.
+#' @param input A list of the necessary input values for \link{runSimulationsR} 
+#' and \link{runSimulationsC}.
+#' @param ravFileName Name of the .rav file that data will be written to.
+#' @return Nothing. The data is written to ravFileName.
+
+generateRavFile <- function(input, ravFileName="tmp.rav"){
   if(input$errorType != "gamma"){
     stop("ERROR: generateRavFile requires errorType = gamma")
   }
@@ -55,5 +63,5 @@ generateRavFile <- function(input,ravFileName="tmp.rav"){
                    endofinput, end of input indicator
                    ",sep="")
   
-  cat(ravText,file=ravFileName)
+  cat(ravText, file=ravFileName)
 }
