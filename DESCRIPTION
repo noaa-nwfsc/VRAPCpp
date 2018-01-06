@@ -7,7 +7,7 @@ Author: Martin Liermann [aut],
   Eli Holmes [aut, cre],
   Howard Coleman [ctb]
 Maintainer: Elizabeth Holmes - NOAA Federal <eli.holmes@noaa.gov>
-Depends: R (>= 2.15.0), stringr, shiny, shinyAce, doParallel, knitr, doSNOW, utils
+Depends: R (>= 2.15.0), stringr, shiny, shinyAce, knitr
 Description: This is a rewrite of the R version of the VRAP program.  
   The original VRAP R package was a one-to-one translation from the original 
   Visual Basic code.  VRAPCpp is the same equations, but completely re-written 
