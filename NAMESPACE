@@ -1,8 +1,12 @@
+useDynLib(VRAP-C, .registration=TRUE)
+exportPattern("^[[:alpha:]]+")
+importFrom(Rcpp, evalCpp)
+
 ## export functions
 export(
-Main,
-VRAP,
-ComputeRER,
+generateRavFile,
+runSimulationsC,
+runSimulationsR,
 WriteReport
 )
 
