@@ -6,39 +6,39 @@
 using namespace Rcpp;
 
 // simFish
-NumericMatrix simFish(int numSims, int numYears, double targetER, bool managementError, double manageErrorA, double manageErrorB, String errorType, double SRerrorA, double SRerrorB, NumericVector initPop, double prod, double cap, NumericVector mat, NumericVector mort, NumericVector HRpt, NumericVector HRt, NumericVector AEQ);
-RcppExport SEXP _VRAPCpp_simFish(SEXP numSimsSEXP, SEXP numYearsSEXP, SEXP targetERSEXP, SEXP managementErrorSEXP, SEXP manageErrorASEXP, SEXP manageErrorBSEXP, SEXP errorTypeSEXP, SEXP SRerrorASEXP, SEXP SRerrorBSEXP, SEXP initPopSEXP, SEXP prodSEXP, SEXP capSEXP, SEXP matSEXP, SEXP mortSEXP, SEXP HRptSEXP, SEXP HRtSEXP, SEXP AEQSEXP) {
+NumericMatrix simFish(int NRuns, int NYears, double targetER, bool MgmtError, double GammaMgmtA, double GammaMgmtB, String errorType, double SRErrorA, double SRErrorB, NumericVector CohortStart, double prod, double cap, NumericVector MatRate, NumericVector NatMort, NumericVector PTU, NumericVector MatU, NumericVector AEQ);
+RcppExport SEXP _VRAPS_simFish(SEXP NRunsSEXP, SEXP NYearsSEXP, SEXP targetERSEXP, SEXP MgmtErrorSEXP, SEXP GammaMgmtASEXP, SEXP GammaMgmtBSEXP, SEXP errorTypeSEXP, SEXP SRErrorASEXP, SEXP SRErrorBSEXP, SEXP CohortStartSEXP, SEXP prodSEXP, SEXP capSEXP, SEXP MatRateSEXP, SEXP NatMortSEXP, SEXP PTUSEXP, SEXP MatUSEXP, SEXP AEQSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< int >::type numSims(numSimsSEXP);
-    Rcpp::traits::input_parameter< int >::type numYears(numYearsSEXP);
+    Rcpp::traits::input_parameter< int >::type NRuns(NRunsSEXP);
+    Rcpp::traits::input_parameter< int >::type NYears(NYearsSEXP);
     Rcpp::traits::input_parameter< double >::type targetER(targetERSEXP);
-    Rcpp::traits::input_parameter< bool >::type managementError(managementErrorSEXP);
-    Rcpp::traits::input_parameter< double >::type manageErrorA(manageErrorASEXP);
-    Rcpp::traits::input_parameter< double >::type manageErrorB(manageErrorBSEXP);
+    Rcpp::traits::input_parameter< bool >::type MgmtError(MgmtErrorSEXP);
+    Rcpp::traits::input_parameter< double >::type GammaMgmtA(GammaMgmtASEXP);
+    Rcpp::traits::input_parameter< double >::type GammaMgmtB(GammaMgmtBSEXP);
     Rcpp::traits::input_parameter< String >::type errorType(errorTypeSEXP);
-    Rcpp::traits::input_parameter< double >::type SRerrorA(SRerrorASEXP);
-    Rcpp::traits::input_parameter< double >::type SRerrorB(SRerrorBSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type initPop(initPopSEXP);
+    Rcpp::traits::input_parameter< double >::type SRErrorA(SRErrorASEXP);
+    Rcpp::traits::input_parameter< double >::type SRErrorB(SRErrorBSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type CohortStart(CohortStartSEXP);
     Rcpp::traits::input_parameter< double >::type prod(prodSEXP);
     Rcpp::traits::input_parameter< double >::type cap(capSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type mat(matSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type mort(mortSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type HRpt(HRptSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type HRt(HRtSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type MatRate(MatRateSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type NatMort(NatMortSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type PTU(PTUSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type MatU(MatUSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type AEQ(AEQSEXP);
-    rcpp_result_gen = Rcpp::wrap(simFish(numSims, numYears, targetER, managementError, manageErrorA, manageErrorB, errorType, SRerrorA, SRerrorB, initPop, prod, cap, mat, mort, HRpt, HRt, AEQ));
+    rcpp_result_gen = Rcpp::wrap(simFish(NRuns, NYears, targetER, MgmtError, GammaMgmtA, GammaMgmtB, errorType, SRErrorA, SRErrorB, CohortStart, prod, cap, MatRate, NatMort, PTU, MatU, AEQ));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_VRAPCpp_simFish", (DL_FUNC) &_VRAPCpp_simFish, 17},
+    {"_VRAPS_simFish", (DL_FUNC) &_VRAPS_simFish, 17},
     {NULL, NULL, 0}
 };
 
-RcppExport void R_init_VRAPCpp(DllInfo *dll) {
+RcppExport void R_init_VRAPS(DllInfo *dll) {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
 }
