@@ -30,6 +30,7 @@ knitr::opts_chunk$set(echo = TRUE)
 workingDirectory <- here() #here() is the base directory of project
 
 runSims <- TRUE # set this to true to run all simulations
+clean <- TRUE # clean up the files made by VRAP 1.0
 
 # note that using .at(i,j) for indexing in c++ is safer because it includes bounds checks.
 ## the following was necessary to get the c++ code to compile
@@ -628,4 +629,8 @@ As might be expected, strong autocorrelation (0.75) leads to a higher proportion
 -  Allow for a vector with NYears values describing the median of recruitment residuals. This could be included as a coraviate with coefficient fixed at 1.
 -  Consider other residual structures (e.g. auto-correlated sequence + random noise).
 
-
+```{r}
+if(clean){
+  file.remove("tmp.rav","tmprav.rav","results.Rdat","vrapOut.tmp.esc","vrapOut.tmp.byr","vrapOut.tmp.sum","vrapOut1.Rdat","vrapOut2.Rdat")
+}
+```
