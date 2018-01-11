@@ -212,7 +212,7 @@ input <- list(
   # If errorType == "gamma" SRerrorA and SRerror B are 
   #   - the shape and scale parameters of the gamma distribution.
   # If errorType == "logNormal" they are the
-  #   - standard deviation and lag 1 autocorrelation of a normal distribution with mean zero
+  #   - log of the standard deviation and lag 1 autocorrelation of a normal distribution with mean zero
   #     that is then exponentiated.
   SRerrorA = 5.7749,
   SRerrorB = 0.1875,
