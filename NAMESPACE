@@ -4,10 +4,11 @@ importFrom(Rcpp, evalCpp)
 
 ## export functions
 export(
-generateRavFile,
-runSimulationsC,
-runSimulationsR,
-WriteReport
+GetInput2,
+WriteRavFile2,
+RunSims2C,
+RunSims2R,
+WriteReport2
 )
 
 ## register S3 methods
