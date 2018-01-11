@@ -1,11 +1,11 @@
-#' @title Write a report
+#' @title Write a report VRAP 2.0
 #' @description Create a pdf with basic information about the VRAP output. 
 #' @details knit2pdf is used to create the pdf using Report-knitr-ER.xRnw or Report-knitr-Pop.xRnw (Sweave files) in inst/doc.
 #' @param InFile the .rav input file.
 #' @param OutFileBase If OutFileBase is NULL, the VRAP output files are assumed to be in the same directory as InFile and named InFile.sum, InFile.byr, InFile.esc.  Thus they have the same basename.  If this is not the case, then OutFileBase can be passed in.
 #' @param show.file Whether to open the pdf after it is produced.
 #' @return Nothing. The pdf is made and saved.
-WriteReport=function(InFile=NULL, OutFileBase=NULL, show.file=FALSE){
+WriteReport2=function(InFile=NULL, OutFileBase=NULL, show.file=FALSE){
   
   
   #make sure InFile is a full path name
