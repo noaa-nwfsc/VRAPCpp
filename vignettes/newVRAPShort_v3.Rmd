@@ -4,7 +4,6 @@ author: "Martin Liermann and Eli Holmes"
 date: "January 2018"
 output: 
   html_document:
-    code_folding: hide
     toc: TRUE
     toc_float: TRUE
 vignette: >
@@ -27,10 +26,10 @@ require(here) #package to intelligently figure out project base directory
 require(VRAP) 
 require(VRAPS)
 knitr::opts_chunk$set(echo = TRUE)
-workingDirectory <- here() #here() is the base directory of project
-
+vignetteFiles <- here("vignette_files")
+if(!file.exists(vignetteFiles)) dir.create(vignetteFiles)
 runSims <- TRUE # set this to true to run all simulations
-clean <- TRUE # clean up the files made by VRAP 1.0
+clean <- FALSE # clean up the files made by VRAP 1.0
 
 # note that using .at(i,j) for indexing in c++ is safer because it includes bounds checks.
 ## the following was necessary to get the c++ code to compile
@@ -161,7 +160,7 @@ ER <- sum(AEQmort)/(sum(AEQmort)+sum(Escpmnt))   # Exploitation rate
 
 Now that we can calculate the exploitation rate we can create an algorithm to adjust the harvest rates until the target exploitation rate is achieved. This is accomplished by starting with a scaling factor of 1, `HRscale`, and then multiplying it by the ratio of the target exploitation rate divided by the actual exploitation rate. This process is repeated until the actual exploitation rate is sufficiently close to the target.
 
-```{r}
+```{r results="hide"}
 targetER <- 0.4  
 HRscale <- 1  # multiply this times the harvest rates.
 repeat{
@@ -237,20 +236,20 @@ inputs <- list(
   
   # parametere for setting exploitation rate start, stop and steps
   StepFunc = "ER",
-  BufferStart = 0,
-  BufferEnd = 0.8,
-  BufferStepSize = 0.02, # stepsize in terms of the exploitation rate, baseER*stepSize  
+  StepStart = 0,
+  StepEnd = 0.8,
+  StepSize = 0.02, # stepsize in terms of the exploitation rate, baseER*stepSize  
     
   NYears = 25, # years in each forward projectiong
   NRuns = 1000 # the number of times the simulation should be repeated.
 )
-inputs$BufferNumSteps = round((inputs$BufferEnd - inputs$BufferStart) / inputs$BufferStepSize + 1) # number of ER targets
+inputs$StepNum = round((inputs$StepEnd - inputs$StepStart) / inputs$StepSize + 1) # number of ER targets
 
 ```
 
-Then we use the code above to create the function to run the simulations for each target ER. This allows us to iterate over a range of exploitation rates.  The function is `RunSims2R()` in the `VRAPS` package.  To view the function type:
+Then we use the code above to create a function to run the simulations for each target ER. This allows us to iterate over a range of exploitation rates.  The function is `RunSims2R()` in the `VRAPS` package.  To view the function type:
 
-```{r, eval=FALSE}
+```{r eval=FALSE}
 library(VRAPS)
 RunSims2R
 ```
@@ -258,7 +257,7 @@ RunSims2R
 Finally we can use `RunSims2R()` to generate simulated data.
 
 ```{r results="hide"}
-setwd(workingDirectory)
+setwd(vignetteFiles)
 # Only run if var runSims is TRUE, otherwise use saved results.
 if(runSims){
   results <- RunSims2R(inputs)
@@ -272,7 +271,7 @@ if(runSims){
 
 To compare this to the results from the VRAP package we need to convert the input list into a rav file that VRAP 1.0 can read. This is accomplished the `WriteRavFile2()` function in the `VRAPS` package. After loading the `VRAPS` package with `library(VRAPS)`, you can view the function by typing `WriteRavFile2` on the command line.
 
-```{r, eval=FALSE}
+```{r eval=FALSE}
 library(VRAPS)
 WriteRavFile2
 ```
@@ -280,7 +279,7 @@ WriteRavFile2
 Then we can run the VRAP procedure from VRAP 1.0 using the `Main()` function from the `VRAP` package.  We will run VRAP twice in order to compare results from two different runs of the simulation.  We will save the output to Rdata files to use later for plotting.
 
 ```{r message=FALSE}
-setwd(workingDirectory)
+setwd(vignetteFiles)
 WriteRavFile2(inputs)
 
 # Either use the VRAP Main function to run VRAP (twice) and then save the results, or load the saved results. 
@@ -298,12 +297,12 @@ if(runSims){
 
 Some plots comparing the average escapement values.
 
-```{r}
+```{r echo=FALSE}
 # first create functions to make the plots
 plotSimAvg <- function(simDat,vrapOut){
   avgs <- apply(simDat[,,],c(1,3),mean)
   plot(1,1,xlim=c(1,25),ylim=range(c(vrapOut$SummaryStats$AvgEscpmnt,avgs)),xlab="Year", ylab="Average escapement", type="n", bty="l")
-  for(i in 1:(inputs$BufferNumSteps+1)){
+  for(i in 1:inputs$StepNum){
     lines(1:25,vrapOut$SummaryStats$AvgEscpmnt[i,])
     lines(1:25,avgs[i,],lty=2)
   }
@@ -312,7 +311,7 @@ plotSimAvg <- function(simDat,vrapOut){
 
 compPlot<- function(vrapOut1,vrapOut2){
   plot(1,1,xlim=c(1,25),ylim=range(c(vrapOut1$SummaryStats$AvgEscpmnt,vrapOut2$SummaryStats$AvgEscpmnt)),xlab="Year", ylab="Average escapement", type="n", bty="l")
-  for(i in 1:(inputs$BufferNumSteps+1)){
+  for(i in 1:inputs$StepNum){
     lines(1:25,vrapOut1$SummaryStats$AvgEscpmnt[i,])
     lines(1:25,vrapOut2$SummaryStats$AvgEscpmnt[i,],lty=2)
   }
@@ -322,16 +321,15 @@ compPlot<- function(vrapOut1,vrapOut2){
 # then use the functions to create the plots
 plotSimAvg(results$totEsc,vrapOut1)
 compPlot(vrapOut1,vrapOut2)
-
 ```
 
 Finally, we calculate the proportion of years that escapement is below the lower critical escapement threshold (`r inputs$ECrit` in our example) and compare this to what we get from the VRAP 1.0 output.
 
-```{r}
+```{r echo=FALSE}
 bEcrit <- apply(results$totEsc,1,function(x) mean(x<200))
 
 plot(1,1,xlim=c(0,0.8),ylim=c(0,1),xlab="Year",ylab="% years below critical Esc threshold",type="n",bty="l")
-targetER <- inputs$BufferStart + inputs$BufferStepSize * (0:inputs$BufferNumSteps)
+targetER <- inputs$StepStart + inputs$StepSize * (0:(inputs$StepNum-1))
 lines(targetER,bEcrit)
 lines(targetER,vrapOut1$SummaryStats$AvgECrit,lty=3)
 lines(targetER,vrapOut2$SummaryStats$AvgECrit,lty=3)
@@ -340,13 +338,13 @@ legend(x=0,y=0.8,legend=c("Simulations above","VRAP (2 sims)"),lty=c(1,3))
 
 We can also look a the proportion of years that the geometric mean of the last 5 years of escapement is greater than or equal to the rebuilding escapement threshold (`r inputs$ERecovery` in this example).
 
-```{r}
+```{r echo=FALSE}
 n <- inputs$NYears
 meanVals <- apply(results$totEsc,c(1,2),function(x) exp(mean(log(x[(n-4):n]))))
 aRcrit <- apply(meanVals,1,function(x) mean(x>=400))
 
 plot(1,1,xlim=c(0,0.8),ylim=c(0,1),xlab="Year",ylab="% years above rebuilding esc threshold",type="n",bty="l")
-targetER <- inputs$BufferStart + inputs$BufferStepSize * (0:inputs$BufferNumSteps)
+targetER <- inputs$StepStart + inputs$StepSize * (0:(inputs$StepNum-1))
 lines(targetER,aRcrit)
 lines(targetER,vrapOut1$SummaryStats$PropRec,lty=3)
 lines(targetER,vrapOut2$SummaryStats$PropRec,lty=3)
@@ -357,9 +355,171 @@ legend(x=0.5,y=0.8,legend=c("Simulations above","VRAP (2 sims)"),lty=c(1,3))
 
 The new simplifed VRAP 2.0 function produces results that are comparable to the original VRAP 1.0 code (in the `VRAP` package). However, the VRAP 2.0 run times are comparable (i.e. not that much faster than VRAP 1.0).
 
-Here, I re-implement most of the simulation code in a C++ function, simFish, using the Rcpp package. The function simFish operates on a single exploitation rate. The code that iterates over different exploitation rates is provided in a separate R function.
+We can re-implement most of the simulation code in a C++ function using the Rcpp package.  In VRAP 2.0, this function is called  `simFish`. The function `simFish` operates on a single exploitation rate. The function code is attached at the end of this vignette.
 
-```{r engine='Rcpp'}
+The C++ function can be called from R as follows. For example's sake, we use a target ER of 0.2.
+
+```{r}
+# calculate AEQ
+AEQ <- c(0,0,0,0,inputs$MatRate[5]) 
+for(age in 4:2){
+  AEQ[age] <- inputs$MatRate[age] + (1-inputs$NatMort[age+1]) * (1 - inputs$MatRate[age]) * AEQ[age+1]
+}
+
+# run the simulation
+xx <- simFish(NRuns=inputs$NRuns,NYears=inputs$NYears,targetER=0.2,
+              MgmtError=inputs$MgmtError, 
+              GammaMgmtA=inputs$GammaMgmtA,GammaMgmtB=inputs$GammaMgmtB,
+              errorType=inputs$errorType,
+              SRErrorA=inputs$SRErrorA,SRErrorB=inputs$SRErrorB,
+              CohortStart=inputs$CohortStart,prod=inputs$prod,cap=inputs$cap,
+              MatRate=inputs$MatRate,NatMort=inputs$NatMort,
+              PTU=inputs$PTU,MatU=inputs$MatU,AEQ=AEQ)
+```
+
+We can assemble this code into an R function that iterates through the different exploitation rates and calls the C++ function.  This function is `RunSims2C()` in the `VRAPS` package.
+
+```{r, eval=FALSE}
+library(VRAPS)
+RunSims2C
+```
+
+And then finally we can use this new R function to generate simulations for the range of exploitation rates.
+
+```{r results="hide"}
+cResults <- RunSims2C(inputs)
+```
+
+Now let's compare the results to the original VRAP (`Main()` from VRAP library) by looking at the average total escapement.
+
+```{r}
+plotSimAvg(cResults$totEsc,vrapOut1)
+```
+
+And the proportion of time below the critical threshold.
+
+```{r}
+bEcrit <- apply(cResults$totEsc,1,function(x) mean(x<200))
+
+plot(1,1,xlim=c(0,0.8),ylim=c(0,1),xlab="Year",ylab="% years below critical Esc threshold",type="n",bty="l")
+targetER <- inputs$StepStart + inputs$StepSize * (0:(inputs$StepNum-1))
+lines(targetER,bEcrit)
+lines(targetER,vrapOut1$SummaryStats$AvgECrit,lty=3)
+lines(targetER,vrapOut2$SummaryStats$AvgECrit,lty=3)
+legend(x=0,y=0.8,legend=c("Simulations above","VRAP (2 sims)"),lty=c(1,3))
+```
+
+Now that we have confirmed that both the R and C++ implementations of the VRAP code are producing results comparable to the original VRAP, we can look at the difference in speed between the R an C++ implementation. 
+
+```{r  results="hide"}
+t1 <- Sys.time()
+cResults <- RunSims2C(inputs)
+t2 <- Sys.time()
+rResults <- RunSims2R(inputs)
+t3 <- Sys.time()
+```
+
+```{r results="hold", echo=FALSE}
+cat(paste("c-version ",format(t2-t1),"\n",sep=""))
+cat(paste("r-version ",format(t3-t2),"\n",sep=""))
+tRat <- round(100*as.numeric(difftime(t2,t1,units="secs"))/as.numeric(difftime(t3,t2,units="secs")),1)
+cat(paste("The c-version takes ",tRat,"% as much time as the r-version\n",sep=""))
+cat(paste("Or is ",round(100/tRat)," times faster.\n",sep=""))
+```
+
+## log normal residuals with autocorrelation
+
+In VRAP 2.0 (both R and C++), the errorType parameter can be set to "GAMMA" or "LOGNORMAL". This determines the distribution of the recruitment residuals. For the results above we used the "GAMMA" option which is what is assumed when there are no covariates in VRAP 1.0. In VRAP 2.0, the logNormal distribution allows for autocorrelated logNormal recruitment residuals (as described in the model section above). Here we test this option. 
+
+First lets create a new input list with errorType set to "LOGNORMAL"
+
+```{r}
+inputs2 <- inputs
+inputs2$errorType <- "LOGNORMAL"
+inputs2$SRErrorA <- 0.5   # lognormal stdev = 0.5
+inputs2$SRErrorB <- 0.75  # autocorrelation = 0.75
+```
+
+Now run with the new R and C++ implementations.
+
+```{r results="hide"}
+resultsLNr <- RunSims2R(inputs2)
+resultsLNc <- RunSims2C(inputs2)
+```
+
+First lets make sure the R and C++ versions produce similar results.
+
+```{r echo=FALSE}
+bEcritR <- apply(resultsLNr$totEsc,1,function(x) mean(x<200))
+bEcritC <- apply(resultsLNc$totEsc,1,function(x) mean(x<200))
+
+plot(1,1,xlim=c(0,0.8),ylim=c(0,1),xlab="ER Target",ylab="% years below critical Esc threshold",type="n",bty="l")
+targetER <- inputs2$StepStart + inputs2$StepSize * (0:(inputs2$StepNum-1))
+lines(targetER,bEcritR)
+lines(targetER,bEcritC,lty=3)
+legend(x=0,y=0.8,legend=c("R function","C++ function"),lty=c(1,3))
+```
+
+Now let's compare simulations with and without autocorrelation.
+
+```{r results="hide"}
+inputs3 <- inputs2
+inputs3$SRErrorB <- 0
+resultsLNc2 <- RunSims2C(inputs3)
+```
+
+We can look at a few individual time series of total escapement for runs with and without autocorrelation so see if there is any signs of the autocorrelation in the recruitment residuals translating to patterns in total escapement.
+
+```{r fig.width=7, fig.height=7, echo=FALSE}
+par(mfrow=c(3,1),mar=c(1,1,1,1),oma=c(5,4,5,1))
+plot(1:25,resultsLNc$totEsc[1,1,],type="o",pch=16,xlab="",ylab="")
+plot(1:25,resultsLNc$totEsc[2,1,],type="o",pch=16,xlab="",ylab="")
+plot(1:25,resultsLNc$totEsc[3,1,],type="o",pch=16,xlab="",ylab="")
+mtext(side=1,outer=TRUE,text="Year",line=1)
+mtext(side=2,outer=TRUE,text="Total escapement",line=1)
+mtext(side=3,outer=TRUE,text="Autocor=0.75",line=1)
+```
+
+```{r fig.width=7, fig.height=7, echo=FALSE}
+par(mfrow=c(3,1),mar=c(1,1,1,1),oma=c(5,4,5,1))
+plot(1:25,resultsLNc2$totEsc[1,1,],type="o",pch=16,xlab="",ylab="")
+plot(1:25,resultsLNc2$totEsc[2,1,],type="o",pch=16,xlab="",ylab="")
+plot(1:25,resultsLNc2$totEsc[3,1,],type="o",pch=16,xlab="",ylab="")
+mtext(side=1,outer=TRUE,text="Year",line=1)
+mtext(side=2,outer=TRUE,text="Total escapement",line=1)
+mtext(side=3,outer=TRUE,text="Autocor=0",line=1)
+```
+
+And we can compare the proportion of years below the critical threshold for the runs with and without autocorrelation. 
+
+```{r echo=FALSE}
+bEcritC <- apply(resultsLNc$totEsc,1,function(x) mean(x<inputs$ECrit))
+bEcritC2 <- apply(resultsLNc2$totEsc,1,function(x) mean(x<inputs$ECrit))
+
+plot(1,1,xlim=c(0,0.8),ylim=c(0,1),xlab="ER target",ylab="% years below critical Esc threshold",type="n",bty="l")
+targetER <- inputs2$StepStart + inputs2$StepSize * (0:(inputs2$StepNum-1))
+lines(targetER,bEcritC)
+lines(targetER,bEcritC2,lty=3)
+legend(x=0,y=0.8,legend=c("autocor=0.75","autocor=0"),lty=c(1,3))
+```
+
+As might be expected, strong autocorrelation (0.75) leads to a higher proportion of years below the threshold.
+
+## Next steps
+
+-  Allow for other SR functions
+-  Allow for covariates?
+-  Allow for a vector with NYears values describing the median of recruitment residuals. This could be included as a coraviate with coefficient fixed at 1.
+-  Consider other residual structures (e.g. auto-correlated sequence + random noise).
+
+```{r echo=FALSE}
+if(clean){
+  file.remove("tmp.rav","tmprav.rav","results.Rdat","vrapOut.tmp.esc","vrapOut.tmp.byr","vrapOut.tmp.sum","vrapOut1.Rdat","vrapOut2.Rdat")
+}
+```
+## simFish C++ function
+
+```
 #include <Rcpp.h>
 using namespace Rcpp;
 
@@ -465,172 +625,5 @@ NumericMatrix simFish(int NRuns, int NYears,
     }
   }
   return totEsc;
-}
-```
-
-The C++ function can be called from R as follows. For example's sake, we use a target ER of 0.2.
-
-```{r}
-# calculate AEQ
-AEQ <- c(0,0,0,0,inputs$MatRate[5]) 
-for(age in 4:2){
-  AEQ[age] <- inputs$MatRate[age] + (1-inputs$NatMort[age+1]) * (1 - inputs$MatRate[age]) * AEQ[age+1]
-}
-
-# run the simulation
-xx <- simFish(NRuns=inputs$NRuns,NYears=inputs$NYears,targetER=0.2,
-              MgmtError=inputs$MgmtError, 
-              GammaMgmtA=inputs$GammaMgmtA,GammaMgmtB=inputs$GammaMgmtB,
-              errorType=inputs$errorType,
-              SRErrorA=inputs$SRErrorA,SRErrorB=inputs$SRErrorB,
-              CohortStart=inputs$CohortStart,prod=inputs$prod,cap=inputs$cap,
-              MatRate=inputs$MatRate,NatMort=inputs$NatMort,
-              PTU=inputs$PTU,MatU=inputs$MatU,AEQ=AEQ)
-
-# print out some of the results
-print(xx[1:10,1:10])
-
-```
-
-Now we can assemble this code into an R function that iterates through the different exploitation rates and calls the C++ function.  This function is `RunSims2C()` in the `VRAPS` package.
-
-```{r, eval=FALSE}
-library(VRAPS)
-RunSims2C
-```
-
-And then finally we can use this new R function to generate simulations for the range of exploitation rates.
-
-```{r results="hide"}
-cResults <- RunSims2C(inputs)
-```
-
-Now let's compare the results to the original VRAP (`Main()` from VRAP library) by looking at the average total escapement.
-
-```{r}
-plotSimAvg(cResults$totEsc,vrapOut1)
-```
-
-And the proportion of time below the critical threshold.
-
-```{r}
-bEcrit <- apply(cResults$totEsc,1,function(x) mean(x<200))
-
-plot(1,1,xlim=c(0,0.8),ylim=c(0,1),xlab="Year",ylab="% years below critical Esc threshold",type="n",bty="l")
-targetER <- inputs$BufferStart + inputs$BufferStepSize * (0:inputs$BufferNumSteps)
-lines(targetER,bEcrit)
-lines(targetER,vrapOut1$SummaryStats$AvgECrit,lty=3)
-lines(targetER,vrapOut2$SummaryStats$AvgECrit,lty=3)
-legend(x=0,y=0.8,legend=c("Simulations above","VRAP (2 sims)"),lty=c(1,3))
-```
-
-Now that we have confirmed that both the R and C++ implementations of the VRAP code are producing results comparable to the original VRAP, we can look at the difference in speed between the R an C++ implementation. 
-
-```{r  results="hide"}
-t1 <- Sys.time()
-cResults <- RunSims2C(inputs)
-t2 <- Sys.time()
-rResults <- RunSims2R(inputs)
-t3 <- Sys.time()
-```
-
-```{r results="hold"}
-cat(paste("c-version ",format(t2-t1),"\n",sep=""))
-cat(paste("r-version ",format(t3-t2),"\n",sep=""))
-tRat <- round(100*as.numeric(difftime(t2,t1,units="secs"))/as.numeric(difftime(t3,t2,units="secs")),1)
-cat(paste("The c-version takes ",tRat,"% as much time as the r-version\n",sep=""))
-cat(paste("Or is ",round(100/tRat)," times faster.\n",sep=""))
-```
-
-## log normal residuals with autocorrelation
-
-In VRAP 2.0 (both R and C++), the errorType parameter can be set to "GAMMA" or "LOGNORMAL". This determines the distribution of the recruitment residuals. For the results above we used the "GAMMA" option which is what is assumed when there are no covariates in VRAP 1.0. In VRAP 2.0, the logNormal distribution allows for autocorrelated logNormal recruitment residuals (as described in the model section above). Here we test this option. 
-
-First lets create a new input list with errorType set to "LOGNORMAL"
-
-```{r}
-inputs2 <- inputs
-inputs2$errorType <- "LOGNORMAL"
-inputs2$SRErrorA <- 0.5   # lognormal stdev = 0.5
-inputs2$SRErrorB <- 0.75  # autocorrelation = 0.75
-```
-
-Now run with the new R and C++ implementations.
-
-```{r results="hide"}
-resultsLNr <- RunSims2R(inputs2)
-resultsLNc <- RunSims2C(inputs2)
-```
-
-First lets make sure the R and C++ versions produce similar results.
-
-```{r}
-bEcritR <- apply(resultsLNr$totEsc,1,function(x) mean(x<200))
-bEcritC <- apply(resultsLNc$totEsc,1,function(x) mean(x<200))
-
-plot(1,1,xlim=c(0,0.8),ylim=c(0,1),xlab="Year",ylab="% years below critical Esc threshold",type="n",bty="l")
-targetER <- inputs2$BufferStart + inputs2$BufferStepSize * (0:inputs2$BufferNumSteps)
-lines(targetER,bEcritR)
-lines(targetER,bEcritC,lty=3)
-legend(x=0,y=0.8,legend=c("R function","C++ function"),lty=c(1,3))
-```
-
-
-Now let's compare simulations with and without autocorrelation.
-
-```{r results="hide"}
-inputs3 <- inputs2
-inputs3$SRErrorB <- 0
-resultsLNc2 <- RunSims2C(inputs3)
-```
-
-We can look at a few individual time series of total escapement for runs with and without autocorrelation so see if there is any signs of the autocorrelation in the recruitment residuals translating to patterns in total escapement.
-
-```{r fig.width=7, fig.height=7}
-par(mfrow=c(3,1),mar=c(1,1,1,1),oma=c(5,4,5,1))
-plot(1:25,resultsLNc$totEsc[1,1,],type="o",pch=16,xlab="",ylab="")
-plot(1:25,resultsLNc$totEsc[2,1,],type="o",pch=16,xlab="",ylab="")
-plot(1:25,resultsLNc$totEsc[3,1,],type="o",pch=16,xlab="",ylab="")
-mtext(side=1,outer=TRUE,text="Year",line=1)
-mtext(side=2,outer=TRUE,text="Total escapement",line=1)
-mtext(side=3,outer=TRUE,text="Autocor=0.75",line=1)
-```
-
-```{r fig.width=7, fig.height=7}
-par(mfrow=c(3,1),mar=c(1,1,1,1),oma=c(5,4,5,1))
-plot(1:25,resultsLNc2$totEsc[1,1,],type="o",pch=16,xlab="",ylab="")
-plot(1:25,resultsLNc2$totEsc[2,1,],type="o",pch=16,xlab="",ylab="")
-plot(1:25,resultsLNc2$totEsc[3,1,],type="o",pch=16,xlab="",ylab="")
-mtext(side=1,outer=TRUE,text="Year",line=1)
-mtext(side=2,outer=TRUE,text="Total escapement",line=1)
-mtext(side=3,outer=TRUE,text="Autocor=0",line=1)
-```
-
-And we can compare the proportion of years below the critical threshold for the runs with and without autocorrelation. Notice that the median and sd are the same for the two runs.
-
-```{r}
-bEcritC <- apply(resultsLNc$totEsc,1,function(x) mean(x<inputs$ECrit))
-bEcritC2 <- apply(resultsLNc2$totEsc,1,function(x) mean(x<inputs$ECrit))
-
-plot(1,1,xlim=c(0,0.8),ylim=c(0,1),xlab="Year",ylab="% years below critical Esc threshold",type="n",bty="l")
-targetER <- inputs2$BufferStart + inputs2$BufferStepSize * (0:inputs2$BufferNumSteps)
-lines(targetER,bEcritC)
-lines(targetER,bEcritC2,lty=3)
-legend(x=0,y=0.8,legend=c("autocor=0.75","autocor=0"),lty=c(1,3))
-
-```
-
-As might be expected, strong autocorrelation (0.75) leads to a higher proportion of years below the threshold.
-
-## Next steps
-
--  Allow for other SR functions
--  Allow for covariates?
--  Allow for a vector with NYears values describing the median of recruitment residuals. This could be included as a coraviate with coefficient fixed at 1.
--  Consider other residual structures (e.g. auto-correlated sequence + random noise).
-
-```{r}
-if(clean){
-  file.remove("tmp.rav","tmprav.rav","results.Rdat","vrapOut.tmp.esc","vrapOut.tmp.byr","vrapOut.tmp.sum","vrapOut1.Rdat","vrapOut2.Rdat")
 }
 ```
