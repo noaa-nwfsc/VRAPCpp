@@ -17,7 +17,7 @@ WriteRavFile2 <- function(inputs, ravFileName="tmp.rav", VRAPvrs=1){
   
   if(VRAPvrs==1) inputs$errorType = "YES" # GAMMA if using a VRAP vrs 1 rav file
 
-  ravText <- paste("Example, VRAP2, Title and VRAP version
+  ravText <- paste("Example, ", ifelse(VRAPvrs==1,"VRAP2, ",""), "Title and VRAP version
 ", inputs$RanSeed, ", Random seed; 0 gives random seed; numbers give fixed seed
 ", inputs$NRuns, ", Number of runs
 ", inputs$NYears, ", Number of years
@@ -47,8 +47,8 @@ VRAP 2.0 ignores; was beta params for smolt to adult survival
 ", inputs$ECrit, ", Lower escapement threshold
 ", inputs$ERecovery, ",", inputs$EndAv, ", Upper escapement threshold (MSY);  # yrs to ave.
 ", inputs$StepFunc, ", Step ER (ER) or  Pop Capacity (Pop)?
-", inputs$BufferStepSize/0.67, ", Buffer step size as percent of base ER or Pop capacity
-", inputs$BufferStart/0.67,",",(inputs$BufferStart+inputs$BufferNumSteps*inputs$BufferStepSize)/0.67,", Min & max buffer (x 0.67 for start & end)
+", inputs$StepSize/ifelse(inputs$StepFun=="ER",0.67,inputs$cap), ", Step size as percent of base ER of .67 or Pop capacity
+", inputs$StepStart/ifelse(inputs$StepFun=="ER",0.67,inputs$cap), ", ", inputs$StepEnd/ifelse(inputs$StepFun=="ER",0.67,inputs$cap),", Min & max ER or Pop for sims as a fraction of base ER or Pop capacity 
 ", inputs$CohortStart[1],", Initial population size at Age  1 
 ", inputs$CohortStart[2],", Initial population size at Age  2 
 ", inputs$CohortStart[3],", Initial population size at Age  3 
