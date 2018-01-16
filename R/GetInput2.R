@@ -2,83 +2,12 @@
 #' @description Read in a .rav file from the original VRAP vrs > 2.0 and assign all the variables
 #' @param InFile the name of the .rav file
 #' @return Returns the list of all inputs
-#' @details VRAP 2.0 uses the same .rav file as VRAP 1.0 but some input lines are ignored.  VRAP 2.0 will also check for a tag `VRAP2` at the start of the .rav file.  If it is present, `GetInput2` knows the rav file is properly adjusted for VRAP >= 2.0.  If the tag is not present, the user is warned but analysis is proceeds unless an illegal option (like covariates) is encountered.
-#' ```
-#' ER Demo for VRAP 2.0, VRAP2,  Title and VRAP version ("VRAP1", "VRAP2")
-#' 0,            Random seed; 0 gives random seed; numbers give fixed seed
-#' 1000,         Number of runs
-#' 25,           Number of years
-#' 2, 5,         Minimum and maximum age                        (fixed; do not change)
-#' 0.001,        Convergence criterion (% error) for target ER
-#' NO,           Center covariates                              (not used in VRAP 2.0)
-#' Ric2,         Spawner Recruit function                       (Only Ric2 allowed in VRAP 2.0)
-#' 9.3, 3702,    S/R a (prod); b (capacity) parameters;         (only a and b allowed in VRAP 2.0)
-#' Mean and CV  for M marine survival index (M^c)               (not used in VRAP 2.0; line ignored)
-#' Trend; Cycle; or Autoc(orrelation) for marine survival ind   (not used in VRAP 2.0; line ignored)
-#' Trend/Cycle parameters for marine survival ind               (not used in VRAP 2.0; line ignored)
-#' Mean and CV  for F flow (or other fw) index (exp(dF))        (not used in VRAP 2.0; line ignored)
-#' Trend; Cycle; or Autoc(orrelation) for flow ind              (not used in VRAP 2.0; line ignored)
-#' Trend/Cycle parameters  for flow ind                         (not used in VRAP 2.0; line ignored)
-#' NO,           Depensation? ("YES" or "NO")                   (Only NO VRAP 2.0)
-#' Depensation parameters                                       (not used in VRAP 2.0; line ignored)
-#' YES,          Determine recruits from adult spawners?        (Only YES in VRAP 2.0)
-#' YES,          Stock-recruit variation ("YES" or "NO")        (Only YES in VRAP 2.0)
-#' 0.967, 1.09,  A and B parameters S/R error and error autocorrelation 
-#' NO,           Smolt to adult survival w/variation            (Only NO VRAP 2.0)    
-#' Beta distribution a and b parameters and autocorrelation     (not used in VRAP 2.0; line ignored)
-#' 0,            Number of breakpoints                          (not used in VRAP 2.0; line ignored)
-#' 1,            Level to use as base regime                    (not used in VRAP 2.0; line ignored)
-#' 0.37,         Base exploitation rate                         (not used in VRAP 2.0; line ignored)
-#' YES,          Include error ("YES" or "NO") in ER management
-#' 65.3946, 0.0158, Gamma parameters for management error
-#' 416,          Lower escapement threshold  
-#' 1040, 5,      1) Upper escapement threshold (MSY);  2) # yrs to average for threshold calculation.
-#' ER,           Step ER (ER) or  Pop Capacity (Pop)            (Only ER in VRAP 2.0)
-#' 0.1,          Step size of ER or Pop capacity                (Different than VRAP1, will set to 0.1 if ER and VRAP 1.0 rav file)
-#' 0, 1,         Min & max ER or Pop capacity                   (Fixed 0 to 1 if ER; if VRAP 1.0 rav file, will convert)
-#' 5108,         Initial population size at Age 1 prior to nat mort
-#' 2554,         Initial population size at Age 2
-#' 1478,         Initial population size at Age 3
-#' 667,          Initial population size at Age 4
-#' 112,          Initial population size at Age 5
-#' 0.5,          Age 1 natural mortality
-#' 0.4,          Age 2 natural mortality
-#' 0.3,          Age 3 natural mortality
-#' 0.2,          Age 4 natural mortality
-#' 0.1,          Age 5 natural mortality
-#' 0.0143,       Age 2 average maturation rate
-#' 0.2260,       Age 3 average maturation rate
-#' 0.6850,       Age 4 average maturation rate
-#' 1,            Age 5 average maturation rate
-#' 0.079, 0.315, Age 2 average mixed-maturity and mature fishery fishing rates
-#' 0.234, 0.331, Age 3 average mixed-maturity and mature fishery fishing rates
-#' 0.352, 0.339, Age 4 average mixed-maturity and mature fishery fishing rates
-#' 0.334, 0.328, Age 5 average mixed-maturity and mature fishery fishing rates
-#' endofinput,   end of input indicator
-#' ```
-#' 
-#' Below are the SR function forms in DM and VRAP 1.0 which show the meaning
-#' of the a and b parameters in each SR function. Note that in the
-#' VRAP 1.0 documentation, the SR functions are written in a different form
-#' but these are the actual forms used in the VRAP 1.0 code (and DM) and
-#' reflect the meaning of the a and b SR parameters in the .rav files,
-#' including for VRAP 1.0.
-#' ``` BSRa = productivity parameter
-#' BSRb = density dependent prarameter
-#' BSRc = marine survival paramater - M^c
-#' BSRd = freshwater survival parameter - exp(dF)(d should be entered as negative)
-#' HOC2 - Hockey stick R=Min(aS,b)   a = producitvity b=MaxRecruits
-#' HOC3 - R = Min(aS,) exp(dF) (incl freshwater index)
-#' HOC4 - R= Min(aS,) M^c exp(dF)
-#' RIC2 - Ricker R=aS exp(-S/b)       a = productvity  b=capacity
-#' RIC3 - R= aS exp(-S/b+dF) (incl freshwater index)
-#' RIC4 - Ricker with marine survival and freshwater survival
-#'        R=aS M^c exp(-S/b+dF)
-#' BEV2 - Beverton-Holt R=S/(S/b + 1/a)  a = productivity  b=1MaxRecruits
-#' BEV3 - R=S/(S/b + 1/a) exp(dF)(incl freshwater index)
-#' BEV4 - BH with marine survival and freshwater survival
-#'        R=S/(S/b + 1/a) M^c exp(dF)
-#' ```
+#' @details VRAP 2.0 uses the same .rav file as VRAP 1.0 but some input lines are ignored.  VRAP 2.0 will also check for a tag `VRAP2` at the start of the .rav file.  If it is present, `GetInput2` knows the rav file is properly adjusted for VRAP  2.0 (VRAPS).  If the tag is not present, the .rav file is assumed to be in VRAP 1.0 form and proceeds unless option that is illegal in VRAP 2.0 is encountered (like covariates).  See the demo rav file in the `inst` folder (see examples).
+#' @examples
+#' \dontrun{
+#' fpath <- system.file("VRAP", "demofiles/Demo-ER.rav", package="VRAPS")
+#' file.show(fpath)
+#' }
 
 GetInput2 = function(InFile){
   
@@ -259,11 +188,11 @@ GetInput2 = function(InFile){
   inputs$StepFunc = toupper(inputs$StepFunc)
   if(!(inputs$StepFunc %in% c("POP", "ER"))) stop("rav line 30: Unknown selection. Must be ER or POP.")
   
-  inputs$BufferStepSize = readit(30,1)
-  inputs$BufferStart = readit(31,1) 
-  inputs$BufferEnd = readit(31,2)
+  inputs$StepSize = readit(30,1)
+  inputs$StepStart = readit(31,1) 
+  inputs$StepEnd = readit(31,2)
   #integer of the number of steps of ER or Pop Capacity to do  # is 1:BufMax
-  inputs$BufferNumSteps = round((inputs$BufferEnd - inputs$BufferStart) / inputs$BufferStepSize + 1)
+  inputs$StepNum = round((inputs$StepEnd - inputs$StepStart) / inputs$StepSize + 1)
   
   # ------------------ END OF STEP DEFINITION SECTION --------------------
   
