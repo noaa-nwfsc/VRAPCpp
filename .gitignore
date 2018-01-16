@@ -3,3 +3,5 @@
 .RData
 .Ruserdata
 VRAPCpp.Rproj
+vignette_files
+vignettes/*.html
