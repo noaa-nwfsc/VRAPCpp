@@ -235,26 +235,26 @@ inputs <- list(
   
   # parametere for setting exploitation rate start, stop and steps
   StepFunc = "ER",
-  BufferStart = 0,
-  BufferEnd = 0.8,
-  BufferStepSize = 0.02, # stepsize in terms of the exploitation rate, baseER*stepSize  
+  StepStart = 0,
+  StepEnd = 0.8,
+  StepSize = 0.02, # stepsize in terms of the exploitation rate, baseER*stepSize  
     
   NYears = 25, # years in each forward projectiong
   NRuns = 1000 # the number of times the simulation should be repeated.
 )
-inputs$BufferNumSteps = round((inputs$BufferEnd - inputs$BufferStart) / inputs$BufferStepSize + 1) # number of steps
+inputs$StepNum = round((inputs$StepEnd - inputs$StepStart) / inputs$StepSize + 1) # number of steps
 
 ```
 
 Then we create the function to run the simulations. This allows us to iterate over exploitation rates.
 
 ```{r}
-RunSims2R <- function(input,rngSeed=NULL,verbose=FALSE){
+RunSims2R <- function(inputs,rngSeed=NULL,verbose=FALSE){
   # initialize output array
-  totEsc <- array(NA,dim=c(inputs$BufferNumSteps+1,inputs$NRuns,inputs$NYears))
+  totEsc <- array(NA,dim=c(inputs$StepNum,inputs$NRuns,inputs$NYears))
   HRscale <- 1 # multiply this times the harvest rates.
   # calcualte the target exploitation rates based on start, step size, and steps
-  targetER <- inputs$BufferStart + inputs$BufferStepSize * (0:inputs$BufferNumSteps)
+  targetER <- inputs$StepStart + inputs$StepSize * (0:(inputs$StepNum - 1))
   # calculate AEQ and recruitsFromAgeOneFish
   AEQ <- c(0,0,0,0,inputs$MatRate[5]) 
   for(age in 4:2){
@@ -262,7 +262,7 @@ RunSims2R <- function(input,rngSeed=NULL,verbose=FALSE){
   }
   recruitsFromAgeOneFish <- (1-inputs$NatMort[1])*(1-inputs$NatMort[2])*AEQ[2]
 
-  for(ERind in 1:(inputs$BufferNumSteps+1)){
+  for(ERind in 1:inputs$StepNum){
     print(paste("============= target ER =",targetER[ERind]))
     for(sim in 1:inputs$NRuns){ # loop through 1000 25 yr simulations
       logSRerror <- rnorm(1, 0, sd=inputs$SRErrorB) # not currently used
@@ -385,7 +385,7 @@ Some plots comparing the average escapement values.
 plotSimAvg <- function(simDat,vrapOut){
   avgs <- apply(simDat[,,],c(1,3),mean)
   plot(1,1,xlim=c(1,25),ylim=range(c(vrapOut$SummaryStats$AvgEscpmnt,avgs)),xlab="Year", ylab="Average escapement", type="n", bty="l")
-  for(i in 1:(inputs$BufferNumSteps+1)){
+  for(i in 1:inputs$StepNum){
     lines(1:25,vrapOut$SummaryStats$AvgEscpmnt[i,])
     lines(1:25,avgs[i,],lty=2)
   }
@@ -394,7 +394,7 @@ plotSimAvg <- function(simDat,vrapOut){
 
 compPlot<- function(vrapOut1,vrapOut2){
   plot(1,1,xlim=c(1,25),ylim=range(c(vrapOut1$SummaryStats$AvgEscpmnt,vrapOut2$SummaryStats$AvgEscpmnt)),xlab="Year", ylab="Average escapement", type="n", bty="l")
-  for(i in 1:(inputs$BufferNumSteps+1)){
+  for(i in 1:inputs$StepNum){
     lines(1:25,vrapOut1$SummaryStats$AvgEscpmnt[i,])
     lines(1:25,vrapOut2$SummaryStats$AvgEscpmnt[i,],lty=2)
   }
@@ -413,7 +413,7 @@ Finally, we calculate the proportion of years that escapement is below the lower
 bEcrit <- apply(results$totEsc,1,function(x) mean(x<200))
 
 plot(1,1,xlim=c(0,0.8),ylim=c(0,1),xlab="Year",ylab="% years below critical Esc threshold",type="n",bty="l")
-targetER <- inputs$BufferStart + inputs$BufferStepSize * (0:inputs$BufferNumSteps)
+targetER <- inputs$StepStart + inputs$StepSize * (0:(inputs$StepNum-1))
 lines(targetER,bEcrit)
 lines(targetER,vrapOut1$SummaryStats$AvgECrit,lty=3)
 lines(targetER,vrapOut2$SummaryStats$AvgECrit,lty=3)
@@ -428,7 +428,7 @@ meanVals <- apply(results$totEsc,c(1,2),function(x) exp(mean(log(x[(n-4):n]))))
 aRcrit <- apply(meanVals,1,function(x) mean(x>=400))
 
 plot(1,1,xlim=c(0,0.8),ylim=c(0,1),xlab="Year",ylab="% years above rebuilding esc threshold",type="n",bty="l")
-targetER <- inputs$BufferStart + inputs$BufferStepSize * (0:inputs$BufferNumSteps)
+targetER <- inputs$StepStart + inputs$StepSize * (0:(inputs$StepNum-1))
 lines(targetER,aRcrit)
 lines(targetER,vrapOut1$SummaryStats$PropRec,lty=3)
 lines(targetER,vrapOut2$SummaryStats$PropRec,lty=3)
@@ -576,19 +576,19 @@ print(xx[1:10,1:10])
 Now we can recreate the full R function that iterates through the different exploitation rates and calls the c++ function.
 
 ```{r}
-RunSims2C <- function(input,rngSeed=NULL){
+RunSims2C <- function(inputs,rngSeed=NULL){
   # initialize output array
-  totEsc <- array(NA,dim=c(inputs$BufferNumSteps+1,inputs$NRuns,inputs$NYears))
+  totEsc <- array(NA,dim=c(inputs$StepNum, inputs$NRuns, inputs$NYears))
   HRscale <- 1 # multiply this times the harvest rates.
   # calcualte the target exploitation rates based on start, step size, and steps
-  targetER <- inputs$BufferStart + inputs$BufferStepSize * (0:inputs$BufferNumSteps)
+  targetER <- inputs$StepStart + inputs$StepSize * (0:(inputs$StepNum-1))
   # calculate AEQ and recruitsFromAgeOneFish
   AEQ <- c(0,0,0,0,inputs$MatRate[5]) 
   for(age in 4:2){
     AEQ[age] <- inputs$MatRate[age] + (1-inputs$NatMort[age+1]) * (1 - inputs$MatRate[age]) * AEQ[age+1]
   }
   recruitsFromAgeOneFish <- (1-inputs$NatMort[1])*(1-inputs$NatMort[2])*AEQ[2]
-  for(ERind in 1:(inputs$BufferNumSteps+1)){
+  for(ERind in 1:inputs$StepNum){
     print(paste("============= target ER =",targetER[ERind]))
     totEsc[ERind,,] <- simFish(NRuns=inputs$NRuns,NYears=inputs$NYears,targetER=targetER[ERind],
               MgmtError=inputs$MgmtError, 
@@ -622,7 +622,7 @@ And the proportion of time below the critical threshold.
 bEcrit <- apply(cResults$totEsc,1,function(x) mean(x<200))
 
 plot(1,1,xlim=c(0,0.8),ylim=c(0,1),xlab="Year",ylab="% years below critical Esc threshold",type="n",bty="l")
-targetER <- inputs$BufferStart + inputs$BufferStepSize * (0:inputs$BufferNumSteps)
+targetER <- inputs$StepStart + inputs$StepSize * (0:(inputs$StepNum-1))
 lines(targetER,bEcrit)
 lines(targetER,vrapOut1$SummaryStats$AvgECrit,lty=3)
 lines(targetER,vrapOut2$SummaryStats$AvgECrit,lty=3)
@@ -674,7 +674,7 @@ bEcritR <- apply(resultsLNr$totEsc,1,function(x) mean(x<200))
 bEcritC <- apply(resultsLNc$totEsc,1,function(x) mean(x<200))
 
 plot(1,1,xlim=c(0,0.8),ylim=c(0,1),xlab="Year",ylab="% years below critical Esc threshold",type="n",bty="l")
-targetER <- inputs2$BufferStart + inputs2$BufferStepSize * (0:inputs2$BufferNumSteps)
+targetER <- inputs2$StepStart + inputs2$StepSize * (0:(inputs2$StepNum-1))
 lines(targetER,bEcritR)
 lines(targetER,bEcritC,lty=3)
 legend(x=0,y=0.8,legend=c("R function","C++ function"),lty=c(1,3))
@@ -718,7 +718,7 @@ bEcritC <- apply(resultsLNc$totEsc,1,function(x) mean(x<200))
 bEcritC2 <- apply(resultsLNc2$totEsc,1,function(x) mean(x<200))
 
 plot(1,1,xlim=c(0,0.8),ylim=c(0,1),xlab="Year",ylab="% years below critical Esc threshold",type="n",bty="l")
-targetER <- inputs2$BufferStart + inputs2$BufferStepSize * (0:inputs2$BufferNumSteps)
+targetER <- inputs2$StepStart + inputs2$StepSize * (0:(inputs2$StepNum-1))
 lines(targetER,bEcritC)
 lines(targetER,bEcritC2,lty=3)
 legend(x=0,y=0.8,legend=c("autocor=0.75","autocor=0"),lty=c(1,3))
