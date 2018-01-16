@@ -8,10 +8,10 @@
 
 RunSims2R <- function(inputs, silent=TRUE){
   # initialize output array
-  totEsc <- array(NA,dim=c(inputs$ERnumSteps+1,inputs$NRuns,inputs$NYears))
+  totEsc <- array(NA,dim=c(inputs$StepNum, inputs$NRuns, inputs$NYears))
   HRscale <- 1 # multiply this times the harvest rates.
   # calcualte the target exploitation rates based on start, step size, and steps
-  targetER <- inputs$BufferStart + inputs$BufferStepSize * (0:inputs$BufferNumSteps)
+  targetER <- inputs$StepStart + inputs$StepSize * (0:(inputs$StepNum-1))
   # calculate AEQ and recruitsFromAgeOneFish
   AEQ <- c(0,0,0,0,inputs$MatRate[5]) 
   for(age in 4:2){
@@ -19,10 +19,10 @@ RunSims2R <- function(inputs, silent=TRUE){
   }
   recruitsFromAgeOneFish <- (1-inputs$NatMort[1])*(1-inputs$NatMort[2])*AEQ[2]
   
-  for(ERind in 1:(inputs$ERnumSteps+1)){
+  for(ERind in 1:inputs$StepNum){
     if(!silent) print(paste("============= target ER =",targetER[ERind]))
     for(sim in 1:inputs$NRuns){ # loop through 1000 25 yr simulations
-      logSRerror <- rnorm(1, 0, sd=inputs$SRerrorB) # not currently used
+      logSRerror <- rnorm(1, 0, sd=inputs$SRErrorB) # not currently used
       Cohort <- inputs$CohortStart # initialize population
       for(year in 1:25){ # loop through 25 year simulation
         # apply natural mortality
@@ -91,5 +91,4 @@ RunSims2R <- function(inputs, silent=TRUE){
     }
   }
   list(inputs=inputs, totEsc=totEsc)
-  return(list(inputs=inputs, SummaryStats=SummaryStats, staticvars=staticvars, time=comp.time))
 }
