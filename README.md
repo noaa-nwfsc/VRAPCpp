@@ -1,6 +1,15 @@
 # VRAPS
 R package for VRAP rewrite
 
+### To install
+
+```
+library(devtools)
+#VRAP 2.0
+install_github("eeholmes/VRAPS")
+#VRAP 1.0
+install_github("eeholmes/VRAP")
+```
 
 ## Notes
 
