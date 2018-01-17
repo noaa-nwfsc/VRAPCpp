@@ -3,7 +3,7 @@
 #' @details Calls the C++ function `simFish` to run the VRAP simulations
 #'  and returns a 3D array of the total escapement
 #'  at each exploitation rate (ER) for NRuns over NYears.
-#' @param input A list of the necessary input values (can be taken from .rav file).
+#' @param inputs A list of the necessary input values (can be taken from .rav file).
 #' @param silent Whether print progress as the current ER value.
 #' @return A list with the input and the 3D array of total escapment values.
 
