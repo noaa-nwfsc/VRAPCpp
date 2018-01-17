@@ -8,14 +8,21 @@ library(devtools)
 #tell devtools not to build for both 32 and 64 bit
 options(devtools.install.args = "--no-multiarch")
 #VRAP 2.0
-install_github("eeholmes/VRAPCpp", build_vignettes = TRUE)
+install_github("eeholmes/VRAPCpp")
 #VRAP 1.0
 install_github("eeholmes/VRAP")
 ```
 
-The vignettes in the package are not built by default as that would take a long time.  If you want them built add `build_vignettes = TRUE` to the `install_github` call.
+The vignettes in the package are not built by default as that would take a long time.  If you want them built add `build_vignettes = TRUE` to the `install_github` call.  However, the normal procedure for a package is for the package developer to build the vignettes locally and then put the files in the `inst/doc` folder which will then get uploaded to github.
 
-### To install
+To build all the vignettes in the package and put the files into `inst/doc`.  Use
+
+```
+#note "." must be the base level of the package for this to work.
+build_vignettes()
+```
+
+Or knit the vignette and manually move the html file and Rmd file into the `doc/inst` folder.
 
 ## Notes
 
