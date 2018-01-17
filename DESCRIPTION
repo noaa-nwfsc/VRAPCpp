@@ -19,3 +19,6 @@ Imports: Rcpp (>= 0.12.14)
 LinkingTo: Rcpp
 BuildVignettes: yes
 RoxygenNote: 6.0.1
+Suggests: knitr,
+    rmarkdown
+VignetteBuilder: knitr
