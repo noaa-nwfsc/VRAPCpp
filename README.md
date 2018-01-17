@@ -5,7 +5,7 @@ R package for VRAP rewrite
 
 ```
 library(devtools)
-#tell devtools not to build for both 32 and 64 bit
+#tell devtools build only for your machine: 32- or 64-bit
 options(devtools.install.args = "--no-multiarch")
 #VRAP 2.0
 install_github("eeholmes/VRAPCpp")
@@ -23,6 +23,19 @@ build_vignettes()
 ```
 
 Or knit the vignette and manually move the html file and Rmd file into the `doc/inst` folder.
+
+## Vignettes
+
+The package has vignettes that discuss the background of VRAP and show how to use it.  To view the vignettes available use:
+```
+browseVignettes(package="VRAPS")
+```
+You can open a vignette rmarkdown file using
+```
+vignette_rmd_file = "Background.Rmd"
+fpath <- system.file("doc", vignette_rmd_file, package="VRAPS")
+file.open(fpath)
+```
 
 ## Notes
 
