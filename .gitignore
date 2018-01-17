@@ -5,3 +5,7 @@
 VRAPCpp.Rproj
 vignette_files
 vignettes/*.html
+inst/doc
+src/RcppExports.o
+src/simFish.o
+src/VRAPS.dll
