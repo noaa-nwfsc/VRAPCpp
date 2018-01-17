@@ -8,7 +8,7 @@ library(devtools)
 #tell devtools not to build for both 32 and 64 bit
 options(devtools.install.args = "--no-multiarch")
 #VRAP 2.0
-install_github("eeholmes/VRAPCpp")
+install_github("eeholmes/VRAPCpp", build_vignettes = TRUE)
 #VRAP 1.0
 install_github("eeholmes/VRAP")
 ```
