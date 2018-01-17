@@ -13,9 +13,9 @@ install_github("eeholmes/VRAPCpp")
 install_github("eeholmes/VRAP")
 ```
 
-The vignettes in the package are not built by default as that would take a long time.  If you want them built add `build_vignettes = TRUE` to the `install_github` call.  However, the normal procedure for a package is for the package developer to build the vignettes locally and then put the files in the `inst/doc` folder which will then get uploaded to github.
+The vignettes in the package are not built by default as that would take a long time.  If you want them built add `build_vignettes = TRUE` to the `install_github` call.  However, the normal procedure for a package is for the package developer to build the vignettes locally and then put the Rmd and html (from knit) files in the `inst/doc` folder which will then get uploaded to github.
 
-To build all the vignettes in the package and put the files into `inst/doc`.  Use
+To build all the vignettes in the `vignette` folder in the package and put the files into `inst/doc`.  Use
 
 ```
 #note "." must be the base level of the package for this to work.
