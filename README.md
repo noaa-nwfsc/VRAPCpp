@@ -6,7 +6,7 @@ R package for VRAP rewrite
 ```
 library(devtools)
 #VRAP 2.0
-install_github("eeholmes/VRAPS")
+install_github("eeholmes/VRAPCpp")
 #VRAP 1.0
 install_github("eeholmes/VRAP")
 ```
