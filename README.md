@@ -6,7 +6,7 @@ R package for VRAP rewrite
 ```
 library(devtools)
 #tell devtools build only for your machine: 32- or 64-bit
-#needed because C++ code in the package
+#needed because C++ code in the VRAP 2.0 package
 options(devtools.install.args = "--no-multiarch")
 #VRAP 2.0
 install_github("eeholmes/VRAPCpp")
