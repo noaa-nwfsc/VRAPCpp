@@ -5,11 +5,17 @@ R package for VRAP rewrite
 
 ```
 library(devtools)
+#tell devtools not to build for both 32 and 64 bit
+options(devtools.install.args = "--no-multiarch")
 #VRAP 2.0
 install_github("eeholmes/VRAPCpp")
 #VRAP 1.0
 install_github("eeholmes/VRAP")
 ```
+
+The vignettes in the package are not built by default as that would take a long time.  If you want them built add `build_vignettes = TRUE` to the `install_github` call.
+
+### To install
 
 ## Notes
 
