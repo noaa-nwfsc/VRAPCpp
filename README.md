@@ -6,6 +6,7 @@ R package for VRAP rewrite
 ```
 library(devtools)
 #tell devtools build only for your machine: 32- or 64-bit
+#needed because C++ code in the package
 options(devtools.install.args = "--no-multiarch")
 #VRAP 2.0
 install_github("eeholmes/VRAPCpp")
@@ -22,7 +23,7 @@ To build all the vignettes in the `vignette` folder in the package and put the f
 build_vignettes()
 ```
 
-Or knit the vignette and manually move the html file and Rmd file into the `doc/inst` folder.
+Or knit the vignette and manually move the html file and Rmd file into the `inst/doc` folder.
 
 ## Vignettes
 
