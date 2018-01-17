@@ -6,17 +6,21 @@
 #' @return Nothing. The data is written to ravFileName.
 
 WriteRavFile2 <- function(inputs, ravFileName="tmp.rav", VRAPvrs=1){
-    # Error checking
-    if(VRAPvrs==1 & inputs$errorType != "GAMMA"){
+  # Error checking
+  if(VRAPvrs==1 & inputs$errorType != "GAMMA"){
     stop("ERROR: generateRavFile requires errorType = GAMMA if writing a rav file for VRAP 1.0.")
+  }
+  if(VRAPvrs==1){
+    inputs$errorType = "YES" # GAMMA if using a VRAP vrs 1 rav file
+    inputs = InputsBackwardCompat(inputs)
   }
   if(inputs$depen != "NO") stop("ERROR: generateRavFile requires depen = NO.")
   if(inputs$EscChoice != "YES") stop("ERROR: generateRavFile requires EscChoice = YES.")
   if(!(toupper(inputs$SRType) %in% c("RIC2", "HOC2", "BEV2"))) stop("ERROR: generateRavFile requires SRType be RIC2, HOC2 or BEV2.")
   
-  if(VRAPvrs==1) inputs$errorType = "YES" # GAMMA if using a VRAP vrs 1 rav file
-
-  ravText <- paste("Example, ", ifelse(VRAPvrs==1,"VRAP2, ",""), "Title and VRAP version
+  
+  
+  ravText <- paste("Example, ", ifelse(VRAPvrs==2,"VRAP2, ",""), "Title and VRAP version
 ", inputs$RanSeed, ", Random seed; 0 gives random seed; numbers give fixed seed
 ", inputs$NRuns, ", Number of runs
 ", inputs$NYears, ", Number of years
@@ -46,8 +50,8 @@ VRAP 2.0 ignores; was beta params for smolt to adult survival
 ", inputs$ECrit, ", Lower escapement threshold
 ", inputs$ERecovery, ",", inputs$EndAv, ", Upper escapement threshold (MSY);  # yrs to ave.
 ", inputs$StepFunc, ", Step ER (ER) or  Pop Capacity (Pop)?
-", inputs$StepSize/ifelse(inputs$StepFun=="ER",0.67,inputs$cap), ", Step size as percent of base ER of .67 or Pop capacity
-", inputs$StepStart/ifelse(inputs$StepFun=="ER",0.67,inputs$cap), ", ", inputs$StepEnd/ifelse(inputs$StepFun=="ER",0.67,inputs$cap),", Min & max ER or Pop for sims as a fraction of base ER or Pop capacity 
+", ifelse(VRAPvrs==1,inputs$BufferStep,inputs$StepSize), ", Step size", ifelse(VRAPvrs==1, " as a percent of TargetU or Pop capacity",""),"
+", ifelse(VRAPvrs==1,inputs$BufferStart,inputs$StepStart), ", ", ifelse(VRAPvrs==1,inputs$BufferEnd,inputs$StepEnd), ", Min & max ER or Pop for sims", ifelse(VRAPvrs==1," as a percent of TargetU or Pop capacity",""),"
 ", inputs$CohortStart[1],", Initial population size at Age  1 
 ", inputs$CohortStart[2],", Initial population size at Age  2 
 ", inputs$CohortStart[3],", Initial population size at Age  3 
