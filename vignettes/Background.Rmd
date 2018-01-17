@@ -2,7 +2,10 @@
 title: "VRAPS: VRAP 2nd edition"
 author: "Martin Liermann and Eli Holmes"
 date: "January 2018"
-output: rmarkdown::html_vignette
+output: 
+  html_document:
+    toc: TRUE
+    toc_float: TRUE
 vignette: >
   %\VignetteIndexEntry{Background}
   %\VignetteEngine{knitr::rmarkdown}
