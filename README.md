@@ -20,6 +20,7 @@ To build all the vignettes in the `vignette` folder in the package and put the f
 
 ```
 #note "." must be the base level of the package for this to work.
+require(devtools)
 build_vignettes()
 ```
 
