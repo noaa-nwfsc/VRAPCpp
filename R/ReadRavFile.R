@@ -16,7 +16,8 @@ ReadRavFile = function(InFile){
   inputs = list()
   inputs$InFile = InFile
 
-  readit = function(skip, n){ read.table(InFile,nrows=1,sep=",",stringsAsFactors=FALSE,skip=skip)[1,n] }
+  readit = function(skip, n){ read.table(InFile,nrows=1,sep=",",stringsAsFactors=FALSE, skip=skip)[1,n] }
+  is.number = function(x){ class(x) %in% c("numeric", "integer") }
   
   # GET TITLE FOR RUN
   inputs$Title = readit(0,1) #line 1
@@ -34,14 +35,14 @@ ReadRavFile = function(InFile){
   inputs$MinAge = readit(4,1)
   inputs$MaxAge = readit(4,2)
   inputs$ConvergeCrit = readit(5,1) #line 5, ConvergeCrit
-  if(class(inputs$RanSeed)!="numeric") stop("rav line 2: RanSeed must be numeric.")
-  if(class(inputs$NRuns)!="numeric") stop("rav line 3: NRuns must be numeric.")
-  if(class(inputs$NYears)!="numeric") stop("rav line 4: NYears must be numeric.")
-  if(class(inputs$MinAge)!="numeric") stop("rav line 5: MinAge must be numeric.")
-  if(class(inputs$MinAge)!=2) stop("rav line 5: MinAge must be 2 for VRAP 2.0.")
-  if(class(inputs$MaxAge)!="numeric") stop("rav line 5: MaxAge must be numeric.")
-  if(class(inputs$MaxAge)!=5) stop("rav line 5: MaxAge must be 5 for VRAP 2.0.")
-  if(class(inputs$ConvergeCrit)!="numeric") stop("rav line 6: ConvergeCrit must be numeric.")
+  if( !is.number(inputs$RanSeed) ) stop("rav line 2: RanSeed must be numeric.")
+  if( !is.number(inputs$NRuns) ) stop("rav line 3: NRuns must be numeric.")
+  if( !is.number(inputs$NYears) ) stop("rav line 4: NYears must be numeric.")
+  if( !is.number(inputs$MinAge) ) stop("rav line 5: MinAge must be numeric.")
+  if( inputs$MinAge != 2 ) stop("rav line 5: MinAge must be 2 for VRAP 2.0.")
+  if( !is.number(inputs$MaxAge) ) stop("rav line 5: MaxAge must be numeric.")
+  if( inputs$MaxAge != 5 ) stop("rav line 5: MaxAge must be 5 for VRAP 2.0.")
+  if( !is.number(inputs$ConvergeCrit) ) stop("rav line 6: ConvergeCrit must be numeric.")
   
   #Center covariate not used in VRAP 2.0
   # skip line 6
@@ -86,10 +87,10 @@ ReadRavFile = function(InFile){
     inputs$BSRc = 0;
     inputs$BSRd = 0;
   }
-  if(class(inputs$BSRa)!="numeric") stop("rav line 9: All SR parameters must be numeric.")
-  if(class(inputs$BSRb)!="numeric") stop("rav line 9: All SR parameters must be numeric.")
-  if(class(inputs$BSRc)!="numeric") stop("rav line 9: All SR parameters must be numeric.")
-  if(class(inputs$BSRd)!="numeric") stop("rav line 9: All SR parameters must be numeric.")
+  if( !is.number(inputs$BSRa) ) stop("rav line 9: All SR parameters must be numeric.")
+  if( !is.number(inputs$BSRb) ) stop("rav line 9: All SR parameters must be numeric.")
+  if( !is.number(inputs$BSRc) ) stop("rav line 9: All SR parameters must be numeric.")
+  if( !is.number(inputs$BSRd) ) stop("rav line 9: All SR parameters must be numeric.")
   
   
   # Skip the next 6 lines which had to do with covariates
@@ -103,9 +104,9 @@ ReadRavFile = function(InFile){
   inputs$DL1 = readit(16,1)
   inputs$DL2 = readit(16,2)
   inputs$DR = readit(16,3)
-  if(!is.numeric(inputs$DL1)) stop("rav line 17: DL1 should be numeric.")
-  if(!is.numeric(inputs$DL2)) stop("rav line 17: QET should be numeric.  Enter 0 if no quasi-extinction threshold (i.e. threshold = 0).")
-  if(!is.numeric(inputs$DR)) stop("rav line 17: DR (3rd param) should be numeric.")
+  if(!is.number(inputs$DL1)) stop("rav line 17: DL1 should be numeric.")
+  if(!is.number(inputs$DL2)) stop("rav line 17: QET should be numeric.  Enter 0 if no quasi-extinction threshold (i.e. threshold = 0).")
+  if(!is.number(inputs$DR)) stop("rav line 17: DR (3rd param) should be numeric.")
   if(inputs$depen=="NO"){
     if(inputs$DL1 != 0) stop("rav line 17: if no depensation, DL1 should be 0.")
     if(inputs$DR != 1) stop("rav line 17: if no depensation, DR (3rd param) should be 1.")
@@ -128,8 +129,8 @@ ReadRavFile = function(InFile){
   if(inputs$errorType == "YES") inputs$errorType=="GAMMA"
   inputs$SRErrorA = readit(19,1) 
   inputs$SRErrorB = readit(19,2) 
-  if(class(inputs$SRErrorA)!="numeric") stop("rav line 20: SRErrorA must be numeric.")
-  if(class(inputs$SRErrorB)!="numeric") stop("rav line 20: SRErrorB must be numeric.")
+  if( !is.number(inputs$SRErrorA) ) stop("rav line 20: SRErrorA must be numeric.")
+  if( !is.number(inputs$SRErrorB) ) stop("rav line 20: SRErrorB must be numeric.")
 
   # Skip next 2 lines which were for smolt to adult survival variability via
   # beta distribution.
@@ -140,7 +141,7 @@ if(inputs$NumBreakPoints != 0) stop("rav line 23: For VRAP 2.0, NumBreakPoints m
 inputs$BaseRegime = readit(23,1) #required for VRAP 2.0 since no breaks
 if(inputs$BaseRegime != 1) stop("rav line 24: For VRAP 2.0, BaseRegime must be 1.")
 inputs$TargetU = readit(24,1) #not used in VRAP 2.0 but value needed for backwards compatibility
-if(class(inputs$TargetU)!="numeric") stop("rav line 25: TargetU must be numeric.")
+if( !is.number(inputs$TargetU) ) stop("rav line 25: TargetU must be numeric.")
 
   
   # --------- END OF STOCK RECRUIT SECTION -----------------------------
@@ -162,8 +163,8 @@ if(class(inputs$TargetU)!="numeric") stop("rav line 25: TargetU must be numeric.
     inputs$GammaMgmtA = 0
     inputs$GammaMgmtB = 0
   }
-  if(class(inputs$GammaMgmtA)!="numeric") stop("rav line 27: GammaMgmtA must be numeric.")
-  if(class(inputs$GammaMgmtB)!="numeric") stop("rav line 27: GammaMgmtB must be numeric.")
+  if( !is.number(inputs$GammaMgmtA) ) stop("rav line 27: GammaMgmtA must be numeric.")
+  if( !is.number(inputs$GammaMgmtB) ) stop("rav line 27: GammaMgmtB must be numeric.")
   
   # LOWER AND UPPER ESCAPEMENT TEST LEVELS
   # The LOWER ESCAPEMENT LEVEL (ECrit) is the escapement level used by the
