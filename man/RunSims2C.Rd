@@ -7,9 +7,9 @@
 RunSims2C(inputs, silent = TRUE)
 }
 \arguments{
-\item{silent}{Whether print progress as the current ER value.}
+\item{inputs}{A list of the necessary input values (can be taken from .rav file).}
 
-\item{input}{A list of the necessary input values (can be taken from .rav file).}
+\item{silent}{Whether print progress as the current ER value.}
 }
 \value{
 A list with the input and the 3D array of total escapment values.
