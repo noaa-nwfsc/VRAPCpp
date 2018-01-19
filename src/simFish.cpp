@@ -19,10 +19,10 @@ NumericMatrix simFish(int NRuns, int NYears,
   NumericVector newCohort(5);
   NumericVector PTUAdj(5);
   NumericVector MatUAdj(5); 
-  NumericVector AEQmort(5);
+  NumericVector AEQMort(5);
   NumericVector Escpmnt(5);
   
-  double lastAEQmort, HRscale, totAEQmort, totEscpmnt, adultEscapement, 
+  double lastAEQMort, HRscale, TotAEQMort, totEscpmnt, adultEscapement, 
   AEQrecruits, ER, realizedER, ERerror, SRerror, logSRerror;
   bool converged;
   int numTrys;
@@ -44,7 +44,7 @@ NumericMatrix simFish(int NRuns, int NYears,
         std::fill(MatUAdj.begin(), MatUAdj.end(), 0);   // set all elements to 0
       }else{
         numTrys = 1;
-        lastAEQmort = 99;
+        lastAEQMort = 99;
         converged = false;
         HRscale = 1;
         // Rcpp::Rcout <<"year=" << year << "Cohort=" << Cohort << "\n";
@@ -54,11 +54,11 @@ NumericMatrix simFish(int NRuns, int NYears,
           MatUAdj = pmin(MatU*HRscale,1);
           
           // calculate AEQ fishing mortality, escapement, and the exploitation rate
-          AEQmort = Cohort*(PTUAdj*AEQ + (1-PTUAdj)*MatRate*MatUAdj);
+          AEQMort = Cohort*(PTUAdj*AEQ + (1-PTUAdj)*MatRate*MatUAdj);
           Escpmnt = Cohort*(1-PTUAdj)*(1-MatUAdj)*MatRate;
-          totAEQmort = sum(AEQmort);
+          TotAEQMort = sum(AEQMort);
           totEscpmnt = sum(Escpmnt);
-          realizedER = totAEQmort/(totAEQmort+totEscpmnt);
+          realizedER = TotAEQMort/(TotAEQMort+totEscpmnt);
           // calculate the error rate (how far the actual ER is from the target)
           // Rcpp::Rcout << "year=" << year << "ER=" << ER << "\n";
           ERerror = std::abs(ER-realizedER)/ER;  
@@ -66,11 +66,11 @@ NumericMatrix simFish(int NRuns, int NYears,
           
           //Rcpp::Rcout << "PTUAdj,MatUAdj=" << PTUAdj << "," << MatUAdj << "\n";
           //Rcpp::Rcout << "numTrys=" << numTrys << "   HRscale=" << HRscale << "\n";
-          //Rcpp::Rcout << "totAEQmort=" << totAEQmort << "   totEscpmnt=" << totEscpmnt << "\n";
+          //Rcpp::Rcout << "TotAEQMort=" << TotAEQMort << "   totEscpmnt=" << totEscpmnt << "\n";
           //Rcpp::Rcout << "ER=" << ER << "   realizedER=" << realizedER << "\n";
           //Rcpp::Rcout << "ERerror=" << ERerror << "\n";
           
-          if((totAEQmort+totEscpmnt < 1) || (totAEQmort==0) || (numTrys > 100) || (totAEQmort==lastAEQmort)){
+          if((TotAEQMort+totEscpmnt < 1) || (TotAEQMort==0) || (numTrys > 100) || (TotAEQMort==lastAEQMort)){
             converged = true;
           }else if(ERerror < 0.001){
             converged = true;
@@ -78,7 +78,7 @@ NumericMatrix simFish(int NRuns, int NYears,
             HRscale = HRscale*ER/realizedER;
           } 
           numTrys = numTrys+1;
-          lastAEQmort = totAEQmort;
+          lastAEQMort = TotAEQMort;
         } 
       }
       // calculate new cohort
