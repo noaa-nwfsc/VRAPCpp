@@ -6,7 +6,7 @@ importFrom(Rcpp, evalCpp)
 ## export functions
 export(
 GetInput,
-WriteRavFile2,
+WriteRavFile,
 RunSims2C,
 RunSims2R,
 WriteReport2
