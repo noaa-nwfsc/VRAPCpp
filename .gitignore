@@ -8,3 +8,4 @@ vignettes/*.html
 src/RcppExports.o
 src/simFish.o
 src/VRAPS.dll
+src/VRAPS.so
