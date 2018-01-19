@@ -189,6 +189,7 @@ First we define an input list that includes all of the necessary information to 
 
 ```{r}
 inputs <- list(
+  Title = "Background Vignette",
   RanSeed = 0,
   ConvergeCrit = 0.001,
   SRType = "Ric2",
@@ -272,14 +273,14 @@ To compare this to the results from the VRAP package we need to convert the inpu
 
 ```{r eval=FALSE}
 library(VRAPS)
-WriteRavFile2
+WriteRavFile
 ```
 
 Then we can run the VRAP procedure from VRAP 1.0 using the `Main()` function from the `VRAP` package.  We will run VRAP twice in order to compare results from two different runs of the simulation.  We will save the output to Rdata files to use later for plotting.
 
 ```{r message=FALSE}
 setwd(vignetteFiles)
-WriteRavFile2(inputs)
+WriteRavFile(inputs)
 
 # Either use the VRAP Main function to run VRAP (twice) and then save the results, or load the saved results. 
 if(runSims){
