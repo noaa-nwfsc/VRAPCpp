@@ -21,10 +21,10 @@ RunSims2R <- function(inputs, silent=TRUE){
   
   for(ERind in 1:inputs$StepNum){
     if(!silent) print(paste("============= target ER =",targetER[ERind]))
-    for(sim in 1:inputs$NRuns){ # loop through 1000 25 yr simulations
+    for(sim in 1:inputs$NRuns){ # loop through simulations
       logSRerror <- rnorm(1, 0, sd=inputs$SRErrorB) # not currently used
       Cohort <- inputs$CohortStart # initialize population
-      for(year in 1:25){ # loop through 25 year simulation
+      for(year in 1:inputs$NYears){ # loop through each year of simulation
         # apply natural mortality
         Cohort <- Cohort*(1-inputs$NatMort)
         # generate management error
@@ -37,7 +37,7 @@ RunSims2R <- function(inputs, silent=TRUE){
           MatUAdj <- 0
         }else{
           numTrys <- 1
-          lastAEQmort <- 99
+          lastAEQMort <- 99
           repeat{
             # adjust preterminal and terminal fishing rates
             PTUAdj <- inputs$PTU*HRscale 
@@ -46,26 +46,26 @@ RunSims2R <- function(inputs, silent=TRUE){
             PTUAdj[PTUAdj>1] <- 1
             MatUAdj[MatUAdj>1] <- 1
             # calculate AEQ fishing mortality, escapement, and the exploitation rate
-            AEQmort <- Cohort*(PTUAdj*AEQ + (1-PTUAdj)*inputs$MatRate*MatUAdj) 
+            AEQMort <- Cohort*(PTUAdj*AEQ + (1-PTUAdj)*inputs$MatRate*MatUAdj) 
             Escpmnt <- Cohort*(1-PTUAdj)*(1-MatUAdj)*inputs$MatRate
-            totAEQmort <- sum(AEQmort)
+            TotAEQMort <- sum(AEQMort)
             totEscpmnt <- sum(Escpmnt)
-            ER <- totAEQmort/(totAEQmort+totEscpmnt)
+            ER <- TotAEQMort/(TotAEQMort+totEscpmnt)
             # calculate the error rate (how far the actual ER is from the target)
             ERerror <- abs(ER-actualER)/actualER  
             # exit loop if you are close enough OR other criteria are met. Otherwise adjust HRscale.
-            if(totAEQmort+totEscpmnt < 1 | totAEQmort==0 | numTrys > 100 | totAEQmort==lastAEQmort){
+            if(TotAEQMort+totEscpmnt < 1 | TotAEQMort==0 | numTrys > 100 | TotAEQMort==lastAEQMort){
               if(!silent){
                 cat(paste("Target ER = ",targetER[ERind],"  Sim = ",sim,"  Year = ",year,
                           "  goal - actual = ",round(actualER,3)," - ",round(ER,3),
                           "  HRscale = ",round(HRscale,3),"  numTrys = ",numTrys,
-                          "  totEsc = ",round(totEscpmnt,1),"  totAEQmort = ",round(totAEQmort,1),"\n",sep=""))
+                          "  totEsc = ",round(totEscpmnt,1),"  TotAEQMort = ",round(TotAEQMort,1),"\n",sep=""))
               }
               break
             }else if(ERerror < inputs$ConvergeCrit) break
             else HRscale <- HRscale*actualER/ER
             numTrys <- numTrys+1
-            lastAEQmort <- totAEQmort
+            lastAEQMort <- TotAEQMort
           } 
         }
         # calculate new cohort
