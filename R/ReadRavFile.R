@@ -126,7 +126,7 @@ ReadRavFile = function(InFile){
   inputs$errorType = readit(18,1)
   inputs$errorType = toupper(inputs$errorType)
   if(!(inputs$errorType %in% c("NO","YES"))) stop("rav line 19: errorType must be NO or YES.")
-  if(inputs$errorType == "YES") inputs$errorType=="GAMMA"
+  if(inputs$errorType == "YES") inputs$errorType="GAMMA"
   inputs$SRErrorA = readit(19,1) 
   inputs$SRErrorB = readit(19,2) 
   if( !is.number(inputs$SRErrorA) ) stop("rav line 20: SRErrorA must be numeric.")
@@ -211,7 +211,7 @@ if( !is.number(inputs$TargetU) ) stop("rav line 25: TargetU must be numeric.")
   # ----------------------- BASE STOCK DATA SECTION -----------------------------
   
   # begin dynamically keeping track of line number
-  cline=37
+  cline=32
   
   # INPUT INITIAL POPULATION SIZE BY AGE
   # The initial population size by age, for all ages, is used to seed the model.
