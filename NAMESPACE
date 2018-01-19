@@ -9,7 +9,8 @@ GetInput,
 WriteRavFile,
 RunSims2C,
 RunSims2R,
-WriteReport2
+WriteReport2,
+ReadRavFile
 )
 
 ## register S3 methods
