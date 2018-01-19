@@ -93,6 +93,7 @@ repeat{
 
 ## ------------------------------------------------------------------------
 inputs <- list(
+  Title = "Background Vignette",
   RanSeed = 0,
   ConvergeCrit = 0.001,
   SRType = "Ric2",
@@ -165,11 +166,11 @@ if(runSims){
 
 ## ----eval=FALSE----------------------------------------------------------
 #  library(VRAPS)
-#  WriteRavFile2
+#  WriteRavFile
 
 ## ----message=FALSE-------------------------------------------------------
 setwd(vignetteFiles)
-WriteRavFile2(inputs)
+WriteRavFile(inputs)
 
 # Either use the VRAP Main function to run VRAP (twice) and then save the results, or load the saved results. 
 if(runSims){
