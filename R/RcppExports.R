@@ -2,6 +2,6 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 simFish <- function(NRuns, NYears, targetER, MgmtError, GammaMgmtA, GammaMgmtB, errorType, SRErrorA, SRErrorB, CohortStart, prod, cap, MatRate, NatMort, PTU, MatU, AEQ) {
-    .Call(`_VRAPS_simFish`, NRuns, NYears, targetER, MgmtError, GammaMgmtA, GammaMgmtB, errorType, SRErrorA, SRErrorB, CohortStart, prod, cap, MatRate, NatMort, PTU, MatU, AEQ)
+    .Call('_VRAPS_simFish', PACKAGE = 'VRAPS', NRuns, NYears, targetER, MgmtError, GammaMgmtA, GammaMgmtB, errorType, SRErrorA, SRErrorB, CohortStart, prod, cap, MatRate, NatMort, PTU, MatU, AEQ)
 }
 
