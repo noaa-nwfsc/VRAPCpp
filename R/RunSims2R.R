@@ -94,5 +94,5 @@ RunSims2R <- function(inputs, silent=TRUE){
       }
     }
   }
-  list(inputs=inputs, totEsc=totEsc)
+  list(inputs=inputs, totEsc=totEsc, totAEQmort = totAEQmort)
 }
