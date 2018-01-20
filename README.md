@@ -50,10 +50,13 @@ file.open(fpath)
 
 * Martin: Add totAEQmort to RunSims2C().  I have defined at top.  But simFish() needs to be altered to return it.  See changes to RunSims2R().
 
+* I did not do the BYHR SummaryStats.  I wasn't sure anyone used them and didn't want to add a bunch more code.
+
 ## Running a demo of the VRAP 1.0 emmulation
 
 ```
 setwd("vignette_files")
 out = Main.VRAP1("tmp.rav")
+out = Main.VRAP1("tmp.rav", version="C")
 ```
-That will run `tmp.rav` through Main() and make all the VRAP 1.0 output files.
+That will run `tmp.rav` through Main.VRAP1() and make all the VRAP 1.0 output files.  Note, Martin needs to add totAEQmort to `simFish()` before this will run.
