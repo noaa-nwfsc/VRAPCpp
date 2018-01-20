@@ -9,7 +9,6 @@ GetInput,
 WriteRavFile,
 RunSims2C,
 RunSims2R,
-WriteReport2,
 ReadRavFile,
 Main.VRAP1
 )

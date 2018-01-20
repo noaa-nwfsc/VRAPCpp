@@ -7,18 +7,17 @@ Author: Martin Liermann [aut],
   Eli Holmes [aut, cre],
   Howard Coleman [ctb]
 Maintainer: Elizabeth Holmes - NOAA Federal <eli.holmes@noaa.gov>
-Depends: R (>= 2.15.0), stringr, shiny, shinyAce, knitr
+Depends: R (>= 2.15.0), stringr, shiny, shinyAce, knitr, VRAP
 Description: This is a rewrite of the R version of the VRAP program.  
   The original VRAP R package was a one-to-one translation from the original 
   Visual Basic code.  VRAPCpp is the same equations, but completely re-written 
   by Martin Liermann to be more efficient.  VRAPCpp does not have all the 
   functionality of VRAP. Many of the rav options in VRAP were not used and are 
-  removed.
+  removed.  There is a shiny that emulates the VRAP 1.0 shiny app.
 License: GPL (>= 2)
 Imports: Rcpp (>= 0.12.14)
 LinkingTo: Rcpp
 BuildVignettes: yes
 RoxygenNote: 6.0.1
-Suggests: knitr,
-    rmarkdown
+Suggests: knitr, rmarkdown
 VignetteBuilder: knitr

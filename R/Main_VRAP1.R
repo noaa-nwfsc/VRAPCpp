@@ -75,7 +75,7 @@ Main.VRAP1 = function(InFile=NULL, OutFileBase=NULL,
   }
   
   ## add the output file names to the inputs
-  inputs = SetOutFileNames(OutFileBase, inputs)
+  inputs = VRAP:::SetOutFileNames(OutFileBase, inputs)
   
   out=RunSims.VRAP1(inputs, version=version)
   
@@ -84,15 +84,15 @@ Main.VRAP1 = function(InFile=NULL, OutFileBase=NULL,
   
   ## 'SAVE SUMMARY RESULTS .sum
   if(!silent) cat("Saving summary...\n")
-  if(save.output.as.files) SaveSummary(out$inputs, out$SummaryStats, out$staticvars)
+  if(save.output.as.files) VRAP:::SaveSummary(out$inputs, out$SummaryStats, out$staticvars)
 
   ## 'SAVE ESCAPEMENT DATA .esc
   if(!silent) cat("Saving escapement data...\n")
-  if(save.output.as.files) SaveEscpmntData(out$inputs, out$SummaryStats)
+  if(save.output.as.files) VRAP:::SaveEscpmntData(out$inputs, out$SummaryStats)
   
   ## 'SAVE BROOD YEAR EXPLOITATION RATE DATA .byr
   if(!silent) cat("Saving BYr year data...\n")
-  if(save.output.as.files) SaveBYrData(out$inputs, out$SummaryStats)
+  if(save.output.as.files) VRAP:::SaveBYrData(out$inputs, out$SummaryStats)
   
   outtm <- proc.time() - outtm
   

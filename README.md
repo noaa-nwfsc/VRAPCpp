@@ -50,4 +50,10 @@ file.open(fpath)
 
 * Martin: Add totAEQmort to RunSims2C().  I have defined at top.  But simFish() needs to be altered to return it.  See changes to RunSims2R().
 
+## Running a demo of the VRAP 1.0 emmulation
 
+```
+setwd("vignette_files")
+Main.VRAP1("tmp.rav")
+```
+That will run `tmp.rav` through Main() and make all the VRAP 1.0 output files.
