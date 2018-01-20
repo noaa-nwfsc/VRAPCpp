@@ -37,6 +37,7 @@ RunSims2R <- function(inputs, silent=TRUE){
         if(actualER==0){
           PTUAdj <- 0
           MatUAdj <- 0
+          TotAEQMort <- 0
         }else{
           numTrys <- 1
           lastAEQMort <- 99
