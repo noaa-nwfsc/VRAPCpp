@@ -22,7 +22,7 @@ RunSims2C <- function(inputs, silent=TRUE){
   recruitsFromAgeOneFish <- (1-inputs$NatMort[1])*(1-inputs$NatMort[2])*AEQ[2]
   for(ERind in 1:inputs$StepNum){
     if(!silent) print(paste("============= target ER =",targetER[ERind]))
-    totEsc[ERind,,] <- simFish(
+    simFishResults <- simFish(
       NRuns=inputs$NRuns,
       NYears=inputs$NYears,
       targetER=targetER[ERind],
@@ -33,6 +33,8 @@ RunSims2C <- function(inputs, silent=TRUE){
       CohortStart=inputs$CohortStart, prod=inputs$prod, cap=inputs$cap,
       MatRate = inputs$MatRate, NatMort=inputs$NatMort, PTU=inputs$PTU, MatU=inputs$MatU,
       AEQ=AEQ)
+    totEsc[ERind,,] <- simFishResults[[1]]
+    totAEQmort[ERind,,] <- simFishResults[[2]]
   }
-  list(inputs=inputs, totEsc=totEsc)
+  list(inputs=inputs, totEsc=totEsc, totAEQmort = totAEQmort)
 }

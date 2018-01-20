@@ -6,7 +6,7 @@
 using namespace Rcpp;
 
 // simFish
-NumericMatrix simFish(int NRuns, int NYears, double targetER, bool MgmtError, double GammaMgmtA, double GammaMgmtB, String errorType, double SRErrorA, double SRErrorB, NumericVector CohortStart, double prod, double cap, NumericVector MatRate, NumericVector NatMort, NumericVector PTU, NumericVector MatU, NumericVector AEQ);
+List simFish(int NRuns, int NYears, double targetER, bool MgmtError, double GammaMgmtA, double GammaMgmtB, String errorType, double SRErrorA, double SRErrorB, NumericVector CohortStart, double prod, double cap, NumericVector MatRate, NumericVector NatMort, NumericVector PTU, NumericVector MatU, NumericVector AEQ);
 RcppExport SEXP _VRAPS_simFish(SEXP NRunsSEXP, SEXP NYearsSEXP, SEXP targetERSEXP, SEXP MgmtErrorSEXP, SEXP GammaMgmtASEXP, SEXP GammaMgmtBSEXP, SEXP errorTypeSEXP, SEXP SRErrorASEXP, SEXP SRErrorBSEXP, SEXP CohortStartSEXP, SEXP prodSEXP, SEXP capSEXP, SEXP MatRateSEXP, SEXP NatMortSEXP, SEXP PTUSEXP, SEXP MatUSEXP, SEXP AEQSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;

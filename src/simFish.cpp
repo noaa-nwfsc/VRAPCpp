@@ -2,7 +2,7 @@
 using namespace Rcpp;
 
 // [[Rcpp::export]]
-NumericMatrix simFish(int NRuns, int NYears, 
+List simFish(int NRuns, int NYears, 
                       double targetER, 
                       bool MgmtError,
                       double GammaMgmtA, double GammaMgmtB,
@@ -15,12 +15,14 @@ NumericMatrix simFish(int NRuns, int NYears,
                       NumericVector AEQ){
   
   NumericMatrix totEsc(NRuns, NYears);
+  NumericMatrix totAEQmortV(NRuns, NYears);
   NumericVector Cohort(5);
   NumericVector newCohort(5);
   NumericVector PTUAdj(5);
   NumericVector MatUAdj(5); 
   NumericVector AEQMort(5);
   NumericVector Escpmnt(5);
+  List to_return(2);
   
   double lastAEQMort, HRscale, TotAEQMort, totEscpmnt, adultEscapement, 
   AEQrecruits, ER, realizedER, ERerror, SRerror, logSRerror;
@@ -85,6 +87,8 @@ NumericMatrix simFish(int NRuns, int NYears,
       newCohort = Cohort*(1-PTUAdj)*(1-MatRate);
       // Rcpp::Rcout << "newCohort=" << newCohort << "\n";
       Escpmnt = pmax(Cohort*(1-PTUAdj)*(1-MatUAdj)*MatRate,0);
+      AEQMort = Cohort*(PTUAdj*AEQ + (1-PTUAdj)*MatRate*MatUAdj);
+      TotAEQMort = sum(AEQMort);
       // calculate adult escapement
       adultEscapement = Escpmnt(2) + Escpmnt(3) + Escpmnt(4);
       // age the cohort
@@ -96,11 +100,14 @@ NumericMatrix simFish(int NRuns, int NYears,
       }else if(errorType=="LOGNORMAL"){
         // SRErrorA = lognormal sd, SRErrorB = autocorrelation
         logSRerror = SRErrorB*logSRerror + sqrt(1-pow(SRErrorB,2.0))*rnorm(1, 0, SRErrorA)[0];
+        totAEQmortV(sim,year) = TotAEQMort;
         SRerror = exp(logSRerror);
       }
       Cohort(0) = AEQrecruits*SRerror/recruitsFromAgeOneFish;
       totEsc(sim,year) = Escpmnt(1) + Escpmnt(2) + Escpmnt(3) + Escpmnt(4);
     }
   }
-  return totEsc;
+  to_return[0] = totEsc;
+  to_return[1] = totAEQmortV;
+  return to_return;
 }
