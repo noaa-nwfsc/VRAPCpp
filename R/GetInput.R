@@ -10,4 +10,5 @@ GetInput = function(InFile){
   if(filext=="rav") inputs = ReadRavFile(InFile)
   if(filext=="rap") inputs = ReadRapFile(InFile)
   inputs$InFile = InFile
+  return(inputs)
 }
