@@ -7,8 +7,10 @@
 #' @return A list with the inputs and the 3D array of total escapment values.
 
 RunSims2R <- function(inputs, silent=TRUE){
-  # initialize output array
+  # initialize output arrays
   totEsc <- array(NA,dim=c(inputs$StepNum, inputs$NRuns, inputs$NYears))
+  totAEQmort <- array(NA,dim=c(inputs$StepNum, inputs$NRuns, inputs$NYears))
+  
   HRscale <- 1 # multiply this times the harvest rates.
   # calcualte the target exploitation rates based on start, step size, and steps
   targetER <- inputs$StepStart + inputs$StepSize * (0:(inputs$StepNum-1))
@@ -87,6 +89,7 @@ RunSims2R <- function(inputs, silent=TRUE){
         }
         Cohort[1] <- AEQrecruits*SRerror/recruitsFromAgeOneFish
         totEsc[ERind,sim,year] <- sum(Escpmnt[2:5])
+        totAEQmort[ERind,sim,year] <- TotAEQMort #save
       }
     }
   }
