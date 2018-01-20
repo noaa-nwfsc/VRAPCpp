@@ -123,17 +123,17 @@ ReadRavFile = function(InFile){
   #   if GAMMA, SRErrorA and B are shape and scale
   #   if LOGNORMAL, SRErrorA and B are log sd and autocorrelation
 
-  inputs$errorType = readit(18,1)
-  inputs$errorType = toupper(inputs$errorType)
-  if(!(inputs$errorType %in% c("NO","YES"))) stop("rav line 19: errorType must be NO or YES.")
-  if(inputs$errorType == "YES") inputs$errorType="GAMMA"
+  inputs$SurvScale = readit(18,1)
+  inputs$SurvScale = toupper(inputs$SurvScale)
+  if(!(inputs$SurvScale %in% c("NO","YES"))) stop("rav line 19: SurvScale must be NO or YES.")
+  if(inputs$SurvScale == "YES") inputs$errorType="GAMMA"
   inputs$SRErrorA = readit(19,1) 
   inputs$SRErrorB = readit(19,2) 
   if( !is.number(inputs$SRErrorA) ) stop("rav line 20: SRErrorA must be numeric.")
   if( !is.number(inputs$SRErrorB) ) stop("rav line 20: SRErrorB must be numeric.")
 
-  # Skip next 2 lines which were for smolt to adult survival variability via
-  # beta distribution.
+  inputs$MarSurv = readit(20,1)
+  if(inputs$MarSurv != "NO") stop("rav line 21: MarSurv must be NO for VRAP 2.0.")
   
   # Set the base ER or Pop level.  Only 
 inputs$NumBreakPoints = readit(22,1)

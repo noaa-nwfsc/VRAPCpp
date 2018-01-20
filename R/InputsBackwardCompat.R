@@ -14,5 +14,8 @@ InputsBackwardCompat = function(inputs){
   inputs$BufferEnd = inputs$StepEnd/ifelse(inputs$StepFunc=="ER",inputs$TargetU,inputs$cap)
   #integer of the number of steps of ER or Pop Capacity to do  # is 1:BufMax
   inputs$BufMax = round((inputs$BufferEnd - inputs$BufferStart) / inputs$BufferStep + 1)
+  
+  inputs$SurvScale = "YES" #GAMMA
+
   return(inputs)
 }
