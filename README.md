@@ -54,6 +54,6 @@ file.open(fpath)
 
 ```
 setwd("vignette_files")
-Main.VRAP1("tmp.rav")
+out = Main.VRAP1("tmp.rav")
 ```
 That will run `tmp.rav` through Main() and make all the VRAP 1.0 output files.
