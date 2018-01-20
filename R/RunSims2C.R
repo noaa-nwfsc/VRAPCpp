@@ -10,6 +10,7 @@
 RunSims2C <- function(inputs, silent=TRUE){
   # initialize output array
   totEsc <- array(NA,dim=c(inputs$StepNum,inputs$NRuns,inputs$NYears))
+  totAEQmort <- array(NA,dim=c(inputs$StepNum,inputs$NRuns,inputs$NYears))
   HRscale <- 1 # multiply this times the harvest rates.
   # calcualte the target exploitation rates based on start, step size, and steps
   targetER <- inputs$StepStart + inputs$StepSize * (0:(inputs$StepNum-1))
