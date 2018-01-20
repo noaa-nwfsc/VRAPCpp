@@ -75,14 +75,9 @@ Main.VRAP1 = function(InFile=NULL, OutFileBase=NULL,
   }
   
   ## add the output file names to the inputs
-  inputs$OutFileSum = paste(PathName,BaseName,".sum",sep="")
-  inputs$OutFileEsc = paste(PathName,BaseName,".esc",sep="")
-  inputs$OutFileByr = paste(PathName,BaseName,".byr",sep="")
-  inputs$OutFileLog = paste(PathName,BaseName,".log",sep="")
-  inputs$InFileCopy = paste(PathName,BaseName,".rav",sep="")
-  inputs$OutFileReport = paste(PathName,BaseName,".pdf",sep="")
+  inputs = SetOutFileNames(OutFileBase, inputs)
   
-  out=RunSims.VRAP1(inputs, silent=TRUE, version=version)
+  out=RunSims.VRAP1(inputs, version=version)
   
   outtm <- proc.time()
   
