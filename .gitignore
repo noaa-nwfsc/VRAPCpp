@@ -3,7 +3,6 @@
 .RData
 .Ruserdata
 VRAPCpp.Rproj
-vignette_files
 vignettes/*.html
 src/RcppExports.o
 src/simFish.o
