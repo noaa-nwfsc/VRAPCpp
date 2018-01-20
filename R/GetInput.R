@@ -4,10 +4,10 @@
 #' @return Returns the list of all inputs
 GetInput = function(InFile){
   require(stringr)
-  postfix = str_split(InFile,"[.]")[[1]]
-  postfix = postfix[length(postfix)]
-  if(!(postfix %in% c("rav", "rap"))) stop("GetInput VRAP 2.0 requires either a .rav or .rap input file.")
-  if(postfix=="rav") inputs = ReadRavFile(InFile)
-  if(postfix=="rap") inputs = ReadRapFile(InFile)
+  filext = str_split(InFile,"[.]")[[1]]
+  filext = filext[length(filext)]
+  if(!(filext %in% c("rav", "rap"))) stop("GetInput VRAP 2.0 requires either a .rav or .rap input file.")
+  if(filext=="rav") inputs = ReadRavFile(InFile)
+  if(filext=="rap") inputs = ReadRapFile(InFile)
   inputs$InFile = InFile
 }
