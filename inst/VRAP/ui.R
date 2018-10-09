@@ -8,7 +8,7 @@ appTitle <- paste0("<span title='Shiny app version / Package version' ",
                    "style='font-weight:700;font-size:24px'>",
                    shiny.version)
 
-vrapVersion <- packageVersion("VRAP")
+vrapVersion <- packageVersion("VRAPS")
 COLWIDTH <- 5
 
 if (!is.null(vrapVersion) && length(vrapVersion)>0) {
@@ -21,7 +21,7 @@ examplesList <- c("Select a demo"="NOSEL",EXAMPLES)
 
 fluidPage(
   appFrameHeaderFixed(),
-  titlePanel(HTML(appTitle),windowTitle="VRAP"),
+  titlePanel(HTML(appTitle),windowTitle="VRAPS"),
   conditionalPanel(
     condition=paste("$('html').attr('class')=='shiny-busy' || ",
                     "$('spinnerhost').hasClass('busy')",sep=""),
@@ -47,7 +47,7 @@ fluidPage(
   tabsetPanel(
     id="tabset",
     tabPanel(
-      title="Run VRAP",
+      title="Run VRAPS",
       value="datainputtab",
       br(),
       fluidRow(
@@ -55,7 +55,7 @@ fluidPage(
           COLWIDTH,
           selectInput(
             "type", "Step 1: Input data",
-            list("Upload .rav file (click to select demo instead)" = "upload",
+            list("Upload rav file (click to select demo instead)" = "upload",
                  "Choose a demo file (click to upload data instead)" = "demo"),
             selected="upload",
             width="400px"
@@ -65,9 +65,9 @@ fluidPage(
           COLWIDTH,
           conditionalPanel(
             "input.type == 'upload'",
-            div(id="uploadravfilediv", strong("Upload rav file:")),
+            div(id="uploadravfilediv", strong("Select rav file:")),
             consecFileUploadInput("ravupload",
-                                  "Choose .rav file"),
+                                  "Browse..."),
             br()
           ),
           conditionalPanel(
@@ -87,8 +87,8 @@ fluidPage(
           2*COLWIDTH,
           radioButtons(
             'NRuns',
-            'Step 2: Choose (or change) number of runs (NRuns) per simulation',
-            c('1'=1, '10'=10, '100'=100, '1000'=1000, 'Use .rav NRuns' = -1),
+            'Step 2: Choose the number of runs per simulation (NRuns)',
+            c('1'=1, '10'=10, '100'=100, '1000'=1000, 'Use rav NRuns' = -1),
             selected=-1, inline=TRUE)
           )
       ),
@@ -98,16 +98,18 @@ fluidPage(
           2*COLWIDTH,
           conditionalPanel(
             condition="!output.fileselected",
-            strong("Step 3: Run VRAP."),
-            HTML("&nbsp;&nbsp;<em>Button appears after step 1 completed</em>.")
+            strong("Step 3: Run VRAPS."),
+            br(),
+            HTML("<em>Button appears after step 1 is completed</em>.")
           ),
           conditionalPanel(
             "output.fileselected",
             fluidRow(
               column(
-                2,
-                div(id="runvrapdiv", strong("Step 3: Run VRAP."))
-              ),
+                3,
+                div(id="runvrapdiv", strong("Step 3: Run VRAPS."))
+              ),br()),
+            fluidRow(
               column(
                 3,
                 htmlOutput(outputId="runbutton")
@@ -147,11 +149,12 @@ fluidPage(
       value="resultstabsum",
       uiOutput('contentssum')
     ),
-    tabPanel(
-      title="Results (.byr)",
-      value="resultstabbyr",
-      uiOutput('contentsbyr')
-    ),
+    ## uncomment following to display BYr results tab
+    ## tabPanel(
+    ##   title="Results (.byr)",
+    ##   value="resultstabbyr",
+    ##   uiOutput('contentsbyr')
+    ## ),
     tabPanel(
       title="Results (.esc)",
       value="resultstabesc",
@@ -170,7 +173,7 @@ fluidPage(
     tabPanel(
       title="About",
       id="aboutPanel",
-      h4("About VRAP"),
+      h4("About VRAPS"),
       includeHTML("html/app.html")
     ),
     selected="helptab",

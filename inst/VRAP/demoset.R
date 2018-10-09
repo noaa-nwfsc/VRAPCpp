@@ -1,10 +1,9 @@
-source("ravchecker.R")
-source("fileupload.R")
-
-## build a vector of demo files named by title
 demo.set <- function(dir="demofiles") {
+
   demos <- list()
+  
   files <- Sys.glob(file.path(dir, '*'))
+
   for (thefile in files) {
     fi <- file(thefile, 'r')
     demolines <- readLines(fi, 1)
@@ -20,8 +19,6 @@ demo.set <- function(dir="demofiles") {
     }
     close(fi)
   }
-  
+
   as.vector(demos)
 }
-
-EXAMPLES <- demo.set()

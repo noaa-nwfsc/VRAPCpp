@@ -1,13 +1,18 @@
 .libPaths(c("/usr/lib64/R/shiny_library",.libPaths()))
-require(VRAP, quietly=TRUE)
+require(VRAPS, quietly=TRUE)
 require(shiny, quietly=TRUE) #0.6.0
 require(shinyAce, quietly=TRUE)
 
-if (file.exists("parcores.R")) {
-  source("parcores.R")
-} else {
-  parcores <- function() { 1 }
-}
+## if (file.exists("parcores.R")) {
+##   source("parcores.R")
+## } else {
+##   parcores <- function() { 1 }
+## }
+
+## flag for displaying BYr results or not
+## make sure that the help_main.html file is updated
+## using filter_html.R to agree with this setting
+INCLUDEBYR <- FALSE
 
 ## texts of user alerts and errors
 VIRUSDETECTIONMSG <- paste("<b>The uploaded file has triggered",
@@ -32,30 +37,112 @@ DOWNLOADSHELP <- HTML(includeHTML("html/help_downloads.html"))
 ## system command to invoke clamdscan
 SCANCMD <- "clamdscan --fdpass --remove"
 
+## TEMPORARY SETTING FOR TESTING ONLY!!
+SCANCMD <- "true"
+
 ## (relative) path to demo files
 DEMOFILESPATH <- "demofiles"
 
 ## outputfile prefix
 OUTFILEBASENAME <- "VRAPresults"
 
-## attach timestamp to end of filename
+## Attach timestamp to end of filename.
 ## (filename should not include extension)
 appendTimestamp <- function(filename) {
   paste0(filename,"_",strftime(Sys.time(),"%Y%m%d_%H%M%S"))
 }
 
-## extract timestamp from timestamped filename
+## Ensure that the file located at path has the same extension
+## as in filename.
+## If filename contains no extension, do nothing.
+## - Intended to make uploaded, tmp file names consistent with
+## VRAPS::GetInput() extension checks.
+ensureExtension <- function(filename, path) {
+  if (is.null(filename) || is.null(path) ||
+        (nchar(filename) == 0) || (nchar(path) == 0)) {
+    return()
+  }
+  
+  newpath <- path
+  filenamePieces <- str_split(filename, "\\.")[[1]]
+  if (length(filenamePieces) > 1) {
+    ## filename has an extension
+    targetExt <- filenamePieces[length(filenamePieces)];
+    pathPieces <- str_split(path, "\\.")[[1]]
+    pplen <- length(pathPieces)
+    if (pplen > 1) {
+      ## path has an extension
+      pathExt <- pathPieces[pplen]
+      if (pathExt != targetExt) {
+        pathPieces[pplen] <- targetExt
+        newpath <- paste0(pathPieces,collapse='.')
+      }
+    } else {
+      newpath <- paste(path,targetExt,sep='.')
+    }
+  }
+  if (path != newpath) {
+    file.rename(path, newpath)
+  }
+  newpath
+}
+
+## Extract timestamp from timestamped filename.
 ## filename_20161230_111111[.txt]
 extractTimestamp <- function(filename) {
   basename <- stringr::str_replace(filename,"\\.[^.]*$","")
   stringr::str_extract(basename,"\\d{8}_\\d{6}$")
 }
 
-## remove files and directories generated during knitr processing
+## Remove files and directories generated during knitr processing.
 cleanupKnitr <- function(knitrdir=".") {
   file.remove(Sys.glob(c("*.tex","*.aux","*.log")))
   unlink("figure",recursive=TRUE)
 }
+
+# adjust column alignment of escapement results
+fix.esc.headers <- function(thelines) {
+  # requires stringr
+  escindex <- grep("_*Escapement-*", thelines)
+  if (length(escindex) > 0) {
+    ei <- escindex[1]
+    thelines[ei] <- str_replace(thelines[ei],"_*Escapement_*",
+                                "_______Escapement_______")
+  }
+
+  mmindex <- grep("Min *Avg *Max", thelines)
+  if (length(mmindex) > 0 ) {
+    mmi <- mmindex[1]
+    thelines[mmi] <- str_replace(thelines[mmi], "Years.*",
+                                 " Years     Min     Avg     Max")
+  }
+  
+  thelines
+}
+
+## ## build a vector of demo files named by title
+## demo.set <- function(dir="demofiles") {
+##   demos <- list()
+##   files <- Sys.glob(file.path(dir, '*'))
+##   for (thefile in files) {
+##     fi <- file(thefile, 'r')
+##     demolines <- readLines(fi, 1)
+##     while (length(demolines) > 0) {
+##       demoline <- trimws(demolines[1])
+##       if (nchar(demoline) > 0) {
+##         dname <- strsplit(demoline, ',')[[1]][1]
+##         dfile <- basename(thefile)
+##         demos[dname] = dfile
+##         break;
+##       }
+##       demolines <- readLines(fi, 1)
+##     }
+##     close(fi)
+##   }
+  
+##   as.vector(demos)
+## }
+
 
 shinyServer( function(input, output, session) {
 
@@ -63,7 +150,7 @@ shinyServer( function(input, output, session) {
   ## one user interaction to the next
   
   ## number of (logical) cores available
-  lcores <- parcores()
+  ## lcores <- parcores()
 
   cancelRavUpload <- reactive({
     tmp <- switches$resetupload
@@ -73,6 +160,18 @@ shinyServer( function(input, output, session) {
     tmp
   })
 
+  EXAMPLES <- demo.set()
+  
+  ## setByrDisplay <- function(includebyr) {
+  ##   if (includebyr) {
+
+  ##   } else {
+  ##     hideTab(inputId="tabset", target="resultstabbyr")
+  ##   }
+  ## }
+
+  ## setByrDisplay(INCLUDEBYR)
+  
   ## file uploader
   fileUpload <- callModule(consecFileUpload, "ravupload",
                            cancelRavUpload,
@@ -259,7 +358,7 @@ shinyServer( function(input, output, session) {
   })
 
   outputFilesExist <- function() {
-    return(3==length(Sys.glob(outputPath(".*"))))
+    return(3<=length(Sys.glob(outputPath(".*"))))
   }
   
   clearOutputDirectory <- function(clearall=TRUE) {
@@ -270,12 +369,30 @@ shinyServer( function(input, output, session) {
       unlink(file.path(getOutputDirectory(),
                        c("*.byr","*.esc","*.sum","*.pdf")))
     }
+    displayResultsTabs()
+  }
+
+  displayResultsTabs <- function() {
+    ## if (outputFilesExist()) {
+    ##   showTab(inputId="tabset", target="resultstabesc")
+    ##   showTab(inputId="tabset", target="resultstabsum")
+    ## } else {
+    ##   hideTab(inputId="tabset", target="resultstabesc")
+    ##   hideTab(inputId="tabset", target="resultstabsum")
+    ## }
   }
 
   session$onSessionEnded(function(){
     unlink(file.path(getOutputDirectory()), recursive=TRUE)
   })
-  
+
+  ## output$byrresultstab <- renderUI({
+  ##     tabPanel(
+  ##       title="Results (.byr)",
+  ##       value="resultstabbyr",
+  ##       uiOutput('contentsbyr')
+  ##     )
+  ## })
   
   output$contentssum <- renderUI({
     switches$sumOutput
@@ -308,13 +425,17 @@ shinyServer( function(input, output, session) {
     return(
       tagList(
         tags$hr(),
-        tags$h4('Download VRAP output files'),
+        tags$h4('Download VRAPS output files'),
         selectInput("os", "Choose OS:",
                     list("Windows" = "win", 
                          "Mac/Unix" = "unix"),
                     selected=sel),
         report,
-        downloadButton('downloadByr', 'Byr File'),
+        if (INCLUDEBYR) {
+          downloadButton('downloadByr', 'Byr File')
+        } else {
+          NULL
+        },
         downloadButton('downloadEsc', 'Esc File'),
         downloadButton('downloadSum', 'Sum File'),
         rav,
@@ -342,7 +463,7 @@ shinyServer( function(input, output, session) {
     switches$downloads
   })
 
-  ## Wrap a reactive around input$type so that certain actions willx
+  ## Wrap a reactive around input$type so that certain actions will
   ## be taken whenever it changes.
   ## Don't reference input$type directly elsewhere in the code.
   
@@ -389,10 +510,11 @@ shinyServer( function(input, output, session) {
 
 
         capture.output({
-          tmp <- Main(inputfile()[1], OutFileBase=outputPathBase(),
+          tmp <- Main.VRAP1(inputfile()[1], OutFileBase=outputPathBase(),
                       NRuns=inNRuns(),
                       forceNewRav=TRUE,
-                      silent=TRUE, lcores=lcores)
+                      silent=TRUE,
+                      version="C")
         })
         
         output <- VRAP:::SaveSummary(tmp$inputs,
@@ -428,6 +550,8 @@ shinyServer( function(input, output, session) {
         switches$escOutput <<- HTML(
           htmlize(getoutputfile(outputPath(".esc")), 2))
 
+        displayResultsTabs()
+
         ## turn off the spinner, set statuses, and update the
         ## download controls to reflect files present
         session$sendCustomMessage('setspinner','notbusy')
@@ -446,6 +570,9 @@ shinyServer( function(input, output, session) {
     if (file.exists(filepath)) {
       thefile <- file(filepath,"r")
       lines <- readLines(thefile)
+      if (endsWith(filepath, ".esc")) {
+        lines <- fix.esc.headers(lines)
+      }
       close(thefile)
       singlestring <- paste0(lines,collapse="\n")
     }
@@ -478,11 +605,11 @@ shinyServer( function(input, output, session) {
     }
     if (usemodrav) {
       actionButton('recalcButton',
-                   HTML(paste0("<b>Run VRAP</b> with <b>edited parameters</b> ",
+                   HTML(paste0("<b>Run VRAPS</b> with <b>edited parameters</b> ",
                                "and NRuns",runsString)))
     } else {
       actionButton('recalcButton',
-                   HTML(paste0("<b>Run VRAP</b> with selected file and NRuns",
+                   HTML(paste0("<b>Run VRAPS</b> with selected file and NRuns",
                                runsString)))
     }
   })
@@ -495,9 +622,10 @@ shinyServer( function(input, output, session) {
     outfile = file.path(getOutputDirectory(),"vrap_timest")
     session$sendCustomMessage('setwaitmsg', WAITESTIMATINGMSG)
     capture.output({
-      mainres = Main(inFilePath, OutFileBase=outfile, NRuns=1,
+      mainres = Main.VRAP1(inFilePath, OutFileBase=outfile, NRuns=1,
                      forceNewRav=FALSE,
-                     silent=TRUE, lcores=lcores)
+                     silent=TRUE,
+                     version="C")
     })
 
     tefiles <- Sys.glob(paste0(outfile,"*"))
@@ -523,6 +651,10 @@ shinyServer( function(input, output, session) {
 
     timesttext <- paste0(timest," second");
     if (timest != 1) {timesttext <- paste0(timesttext,"s")}
+
+    if (timest < 2) {
+      timesttext <- "~ 1 second"
+    }
 
     HTML(paste("Estimated time for", inputfile()[2], " : ",
                timesttext,"<br/><br/>"))
@@ -570,16 +702,19 @@ shinyServer( function(input, output, session) {
     inFilePath <- NULL
     inFileName <- NULL
 
+    ## clearOutputDirectory()
+    
     if (usemodrav) {
       inFilePath <- getCurrentInput()
       inFileName <- basename(inFilePath)
     } else {
+      clearOutputDirectory()
       setCurrentInput(inFilePath, deleteexisting=TRUE)
       
       if (inputtype() == "upload") {
         inFileName <- uploadedFileInput()$name
-        testPath <- uploadedFileInput()$datapath
-
+        testPath <- ensureExtension(inFileName, uploadedFileInput()$datapath)
+        
         if (is.null(testPath) || !file.exists(testPath)) { return(NULL) }
         
         session$sendCustomMessage('setwaitmsg', WAITSCANNINGMSG)
